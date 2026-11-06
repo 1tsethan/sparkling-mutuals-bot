@@ -1,0 +1,14 @@
+{
+  "name": "sparkling-mutuals-discord",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.18.0" },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "check": "node tools/check.ts",
+    "start": "node --env-file-if-exists=.env src/main.ts",
+    "register": "node --env-file-if-exists=.env tools/register.ts",
+    "notify": "node tools/notify.ts"
+  }
+}
