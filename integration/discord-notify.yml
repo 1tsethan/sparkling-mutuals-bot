@@ -1,0 +1,53 @@
+# Proposed new file in the MOD repository: .github/workflows/discord-notify.yml
+# Review and merge separately; this template has not been installed.
+name: Discord notifications
+on:
+  workflow_run:
+    workflows: [build, release]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  notify:
+    if: >-
+      github.repository == 'johnceoskyblock/sparkling-mutuals' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == 'johnceoskyblock/sparkling-mutuals'
+    runs-on: ubuntu-24.04
+    steps:
+      # No checkout, no execution of workflow artifacts and no PR code.
+      - name: Request a verified Discord announcement
+        continue-on-error: true
+        env:
+          SM_NOTIFICATION_URL: ${{ vars.SM_NOTIFICATION_URL }}
+          SM_NOTIFICATION_SECRET: ${{ secrets.SM_NOTIFICATION_SECRET }}
+        shell: python
+        run: |
+          import hashlib, hmac, json, os, time, urllib.request, urllib.parse
+          run = json.load(open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8"))["workflow_run"]
+          destination = os.environ["SM_NOTIFICATION_URL"]
+          secret = os.environ["SM_NOTIFICATION_SECRET"]
+          parsed = urllib.parse.urlsplit(destination)
+          if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+              or parsed.query or parsed.fragment or parsed.path != "/notifications" or len(secret) < 32):
+              raise SystemExit("Configure the HTTPS bot notification URL and signing secret.")
+          kind = "release" if run["name"] == "release" else "action"
+          body = json.dumps({"repository": "johnceoskyblock/sparkling-mutuals",
+                             "kind": kind, "runId": str(run["id"])}, separators=(",", ":")).encode()
+          stamp = str(int(time.time()))
+          signature = hmac.new(secret.encode(), stamp.encode() + b"." + body, hashlib.sha256).hexdigest()
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+          request = urllib.request.Request(destination, data=body, headers={
+              "Content-Type": "application/json", "x-sm-timestamp": stamp,
+              "x-sm-signature": "sha256=" + signature}, method="POST")
+          try:
+              with urllib.request.build_opener(NoRedirect).open(request, timeout=45) as response:
+                  result = json.load(response)
+              if result.get("status") not in ("sent", "duplicate"):
+                  raise ValueError("receipt needs review")
+              print("Discord announcement confirmed.")
+          except Exception:
+              raise SystemExit("Announcement not confirmed. Review the bot receipt before retrying.")
