@@ -76,6 +76,20 @@ test('clipboard export passes only the signing secret through stdin and sanitize
   });
 });
 
+test('public launcher defaults do not erase the optional private GitHub read credential', async () => {
+  assert.equal(typeof local.localFeedBase, 'function');
+  const privateGithub = 'fictional-github-read-token';
+  const base = local.localFeedBase({ SM_GITHUB_READ_TOKEN: privateGithub, SM_APPLICATION_ID: 'unapproved' },
+    { SM_GITHUB_READ_TOKEN: '', SM_APPLICATION_ID: '1568203972978679888' });
+  let captured: any;
+  await local.runLocalFeeds(secrets.generateLocalSecrets(token), base, 'C:/private/receipts.sqlite', async (_args: any, env: any) => {
+    captured = { ...env }; return 0;
+  });
+  assert.equal(captured.SM_GITHUB_READ_TOKEN, privateGithub);
+  assert.equal(captured.SM_APPLICATION_ID, '1568203972978679888');
+  assert.equal(captured.SM_DEVELOPMENT_BRANCH, 'master');
+});
+
 test('local receipt review loads the protected key without asking the operator to reveal it', () => {
   const dir = mkdtempSync(join(tmpdir(), 'sm-dpapi-review-')), root = join(dir, 'SparklingMutualsBot');
   try {

@@ -52,6 +52,10 @@ export async function runLocalTrial(token: string, register: boolean, baseEnv: N
   } finally { env.SM_DISCORD_BOT_TOKEN = ''; }
 }
 
+export function localFeedBase(environment: NodeJS.ProcessEnv, publicConfig: Record<string, string>): NodeJS.ProcessEnv {
+  return { ...environment, ...publicConfig, SM_GITHUB_READ_TOKEN: environment.SM_GITHUB_READ_TOKEN || '' };
+}
+
 export async function runLocalFeeds(secrets: LocalSecrets, baseEnv: NodeJS.ProcessEnv, dataFile: string, run: ChildRunner) {
   if (!/^[A-Za-z0-9._-]{30,300}$/.test(secrets.botToken) || !/^[a-f0-9]{64}$/.test(secrets.receiptKey) ||
       !/^[a-f0-9]{64}$/.test(secrets.notificationSecret) || !dataFile || dataFile === ':memory:')
@@ -62,5 +66,5 @@ export async function runLocalFeeds(secrets: LocalSecrets, baseEnv: NodeJS.Proce
     SM_STATS_ENABLED: 'false', SM_NOTIFICATIONS_ENABLED: 'true', SM_DEVELOPMENT_BRANCH: 'master',
     SM_BETA_CHANNEL_ID: '1568234962619072532', SM_DATA_FILE: dataFile };
   try { if (await run(['src/main.ts'], env) !== 0) throw new Error('The release-feed service stopped with an error.'); }
-  finally { env.SM_DISCORD_BOT_TOKEN = ''; env.SM_RECEIPT_KEY = ''; env.SM_NOTIFICATION_SECRET = ''; }
+  finally { env.SM_DISCORD_BOT_TOKEN = ''; env.SM_RECEIPT_KEY = ''; env.SM_NOTIFICATION_SECRET = ''; env.SM_GITHUB_READ_TOKEN = ''; }
 }

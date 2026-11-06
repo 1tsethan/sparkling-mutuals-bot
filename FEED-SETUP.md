@@ -4,6 +4,8 @@ The prepared integration watches successful official master push builds and publ
 
 ## Private local configuration
 
+Before starting the feed-enabled service, publish the updated PRIVACY.md from the reviewed bot change and verify that https://github.com/1tsethan/sparkling-mutuals-bot/blob/main/PRIVACY.md describes encrypted durable software-announcement receipts. The currently linked public policy must reflect the new storage before any feeds are enabled. Preparing the protected local configuration can happen first; starting Start-Feeds.cmd must wait for that public-policy verification.
+
 1. Run Configure-Feeds.cmd once. At its hidden prompt, right-click Paste the latest Discord bot token and press Enter. This creates account-protected configuration under %LOCALAPPDATA%/SparklingMutualsBot/secrets.dpapi. It generates separate signing and receipt-encryption keys; their plaintext values are not printed or written to source files.
 2. Keep the protected configuration file and receipt database. They are tied to this Windows account; losing its profile/key material can prevent reading existing receipts. To replace only the bot token later, run `node tools/configure-feeds.ts --replace-token`. Both other keys are preserved. Do not delete the receipt database to retry an uncertain announcement.
 3. Stop the old Start-Local.cmd bot with Ctrl+C, then run Start-Feeds.cmd. Keep the tunnel running. Start-Feeds uses the protected settings and encrypted receipts.sqlite in the same private directory, enables release notices and leaves stats disabled.
