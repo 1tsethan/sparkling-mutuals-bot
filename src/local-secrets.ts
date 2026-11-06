@@ -18,7 +18,7 @@ function windowsOperation(operation: keyof typeof scripts, value: Buffer, runner
   const program = join(process.env.SystemRoot || 'C:/Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe');
   try {
     const result = runner(program, ['-NoProfile','-NonInteractive','-STA','-Command',scripts[operation]], {
-      input: Buffer.from(value.toString('base64')), windowsHide: true, timeout: 15000, maxBuffer: 131072, env
+      input: Buffer.from(value.toString('base64')), windowsHide: true, timeout: 60000, maxBuffer: 131072, env
     });
     const encoded = result.stdout?.toString().trim() ?? '';
     if (result.status !== 0 || result.error || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) throw failed();
