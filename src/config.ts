@@ -37,8 +37,11 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     throw new Error('Command, stable, beta and action channels must be distinct.');
   const port = Number(env.PORT || 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT.');
+  const dataFile = env.SM_DATA_FILE || ':memory:', receiptKey = env.SM_RECEIPT_KEY || '';
+  if (dataFile !== ':memory:' && !/^[a-f0-9]{64}$/i.test(receiptKey)) throw new Error('Missing or invalid configuration: SM_RECEIPT_KEY');
+  if (notificationsEnabled && dataFile === ':memory:') throw new Error('Notifications require encrypted persistent receipt storage.');
   return { applicationId, publicKey, commandChannelId, guildId, statsEnabled, notificationsEnabled,
     botToken, apiKey, notificationSecret, developmentBranch, channels,
     githubReadToken: env.SM_GITHUB_READ_TOKEN || '', host: env.HOST || '127.0.0.1', port,
-    dataFile: env.SM_DATA_FILE || './data/receipts.sqlite' };
+    dataFile, receiptKey };
 }

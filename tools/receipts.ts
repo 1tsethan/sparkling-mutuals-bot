@@ -1,6 +1,8 @@
-import { ReceiptStore } from '../src/store.ts';
+import { EncryptedReceiptStore } from '../src/encrypted-store.ts';
 const file = process.env.SM_DATA_FILE || './data/receipts.sqlite';
-const store = new ReceiptStore(file);
+const key = process.env.SM_RECEIPT_KEY || '';
+if (!/^[a-f0-9]{64}$/i.test(key)) throw new Error('Supply SM_RECEIPT_KEY privately to inspect encrypted receipts.');
+const store = new EncryptedReceiptStore(file, Buffer.from(key, 'hex'));
 try {
   if (process.argv[2] === 'resolve') {
     const key = process.argv[3], message = process.argv[4];

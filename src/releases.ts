@@ -3,7 +3,7 @@ import { BotError } from './profile.ts';
 import { getJson, HttpError, retryAt } from './http.ts';
 import { clean, SM_LINKS } from './commands.ts';
 import type { Message } from './commands.ts';
-import type { ReceiptStore } from './store.ts';
+import type { ReceiptStorage } from './store.ts';
 export const REPOSITORY = 'johnceoskyblock/sparkling-mutuals';
 const ROOT = 'https://api.github.com/repos/' + REPOSITORY;
 const WEB = 'https://github.com/' + REPOSITORY;
@@ -11,7 +11,7 @@ export const TARGETS = ['26.1.2', '26.2', '26.3'];
 type Options = {
   secret: string; developmentBranch: string;
   channels: { stable: string; beta: string; action: string };
-  store: ReceiptStore; discord: { sendMessage(channel: string, message: Message, nonce?: string): Promise<string> };
+  store: ReceiptStorage; discord: { sendMessage(channel: string, message: Message, nonce?: string): Promise<string> };
   fetcher?: typeof fetch; now?: () => number; githubReadToken?: string;
 };
 function requireValid(condition: unknown, detail: string): asserts condition {

@@ -13,6 +13,16 @@ test('configuration defaults all live features off and rejects foreign guilds an
   assert.throws(() => configs.loadConfig({ ...env, SM_STATS_ENABLED: 'true' }), /TOKEN|KEY/);
   assert.throws(() => configs.loadConfig({ ...env, SM_NOTIFICATIONS_ENABLED: 'true' }), /TOKEN|SECRET|BRANCH|CHANNEL/);
 });
+test('enabled notifications require encrypted persistent receipts and a valid key', () => {
+  const feeds = { ...env, SM_DISCORD_BOT_TOKEN: 'fixture-token', SM_NOTIFICATIONS_ENABLED: 'true',
+    SM_NOTIFICATION_SECRET: 's'.repeat(64), SM_DEVELOPMENT_BRANCH: 'master', SM_BETA_CHANNEL_ID: '1568234962619072532',
+    SM_DATA_FILE: 'encrypted.sqlite' };
+  assert.throws(() => configs.loadConfig(feeds), /RECEIPT_KEY/);
+  assert.throws(() => configs.loadConfig({ ...feeds, SM_RECEIPT_KEY: 'bad' }), /RECEIPT_KEY/);
+  assert.throws(() => configs.loadConfig({ ...feeds, SM_RECEIPT_KEY: 'a'.repeat(64), SM_DATA_FILE: ':memory:' }), /persistent|durable/i);
+  assert.equal(configs.loadConfig({ ...feeds, SM_RECEIPT_KEY: 'a'.repeat(64) }).receiptKey, 'a'.repeat(64));
+});
+
 test('the HTTP request handler preserves signed raw bytes, rejects methods and limits request bodies', async () => {
   assert.equal(typeof servers.createRequestHandler, 'function');
   let calls = 0, completed = 0;

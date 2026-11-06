@@ -1,5 +1,14 @@
 import { DatabaseSync } from 'node:sqlite';
 import { BotError } from './profile.ts';
+export interface ReceiptStorage {
+  claimInteraction(id: string, now?: number): boolean;
+  claim(key: string, channel: string, digest: string, now: number): 'new' | 'duplicate' | 'needs_review' | 'waiting';
+  sent(key: string, message: string): void;
+  uncertain(key: string): void;
+  retryable(key: string, at: number): void;
+  list(): any[];
+  close(): void;
+}
 export class ReceiptStore {
   private db: DatabaseSync;
   private now: () => number;

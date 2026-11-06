@@ -5,6 +5,7 @@ import { BotError } from './profile.ts';
 import { LookupService } from './lookup.ts';
 import { DiscordClient } from './discord.ts';
 import { ReceiptStore } from './store.ts';
+import { EncryptedReceiptStore } from './encrypted-store.ts';
 import { ReleaseNotifier } from './releases.ts';
 import { createApp } from './app.ts';
 import { createHttpServer } from './server.ts';
@@ -12,7 +13,8 @@ import { createHttpServer } from './server.ts';
 try {
   const config = loadConfig();
   mkdirSync(dirname(resolve(config.dataFile)), { recursive: true });
-  const store = new ReceiptStore(config.dataFile);
+  const store = config.dataFile === ':memory:' ? new ReceiptStore(':memory:') :
+    new EncryptedReceiptStore(config.dataFile, Buffer.from(config.receiptKey, 'hex'));
   const log = (code: string) => console.log(JSON.stringify({ at: new Date().toISOString(), event: code }));
   const discord = new DiscordClient({ token: config.botToken, applicationId: config.applicationId,
     guildId: config.guildId, allowedChannels: [config.commandChannelId, ...Object.values(config.channels)].filter(Boolean) });

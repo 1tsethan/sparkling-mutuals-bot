@@ -1,0 +1,25 @@
+✔ encrypted receipts preserve confirmed and uncertain sends across restart without plaintext in database or WAL (36.9846ms)
+✔ two SQLite connections cannot both claim an encrypted notice and retry deadlines survive reopening (31.9587ms)
+✔ wrong receipt key and altered ciphertext fail closed without discarding durable receipts (39.9198ms)
+✖ operator receipt listing reads the encrypted database without creating plaintext receipt tables (156.9402ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 420.4766
+
+✖ failing tests:
+
+test at test\encrypted-store.test.ts:82:1
+✖ operator receipt listing reads the encrypted database without creating plaintext receipt tables (156.9402ms)
+  TypeError: Cannot read properties of undefined (reading 'message')
+      at TestContext.<anonymous> (file:///C:/Users/Administrator/Documents/CodexWorktrees/sm-bot-feeds/test/encrypted-store.test.ts:91:46)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1325:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+      at Test.postRun (node:internal/test_runner/test:1465:19)
+      at Test.run (node:internal/test_runner/test:1390:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
