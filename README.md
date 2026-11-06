@@ -4,7 +4,7 @@ Local implementation of the approved SM bot design. It provides /tickets, /spark
 
 The Discord application has been created under ethxn15 and its bot installed in Sparkling Mutuals, with the existing blue sparkle SM logo as its avatar. It is private, supports guild installation only, and was authorized for View Channels, Send Messages and Embed Links. Its public application ID, verification key and actual bot-commands channel ID are recorded in .env.example. No bot token was displayed or reset.
 
-The service has not been deployed and commands are not active. The Hypixel application, hosting, secret configuration, beta channel ID and approved development branch still need to be configured. Publish the privacy policy and deletion/support contact and verify encrypted storage before operation. The mod repository is unchanged. The existing mod's beta publisher also needs the changes described in integration/README.md.
+The local connection trial is active for private /help responses. Statistics remain disabled pending Hypixel approval. GitHub announcements are prepared for master action builds and the existing stable/beta channels; activation requires the protected configuration, updated public privacy notice and companion mod workflow described in [FEED-SETUP.md](FEED-SETUP.md).
 
 ## Local checks
 
@@ -20,13 +20,13 @@ Run from this folder:
 
 The last three commands print fictional responses, a command registration preview, and an unsigned notification preview. They do not send requests. npm test and npm run check invoke the same checks on hosts with a normal Node/npm shell setup.
 
-Local verification on 6 November 2026: 38/38 controlled tests passed and all 28 TypeScript files passed syntax checks, including the local-startup helper and safe registration diagnostics. The original service received a fresh code review and regression fixes. See ../bot-progress.md for the decisions and verification record. On this preparation host, npm's command shell could not find Node; the direct node commands above were used successfully.
+Local verification on 7 November 2026: all 49 native tests passed on Windows with Node 24.18.0, including real DPAPI round trips, encrypted SQLite restart/concurrency/tamper cases and launcher boundaries. All 35 TypeScript files passed syntax checks. The GitHub workflow template passes actionlint, and its actual inline sender passes four controlled Python tests in the companion mod repository.
 
 The owner selected local hosting and started both the bot and an approved temporary Cloudflare tunnel. Four SM guild commands are registered, localhost and public HTTPS health checks return status ok, and Discord accepted the interaction endpoint. A real /help invocation in bot-commands returned the expected private response with support and download links. Statistics and release feeds remain disabled, and receipts remain in memory. See LOCAL-START.md for launch instructions. The tunnel address changes when restarted; both user-run windows must remain open.
 
 The separate public repository is https://github.com/1tsethan/sparkling-mutuals-bot. The [privacy notice](https://github.com/1tsethan/sparkling-mutuals-bot/blob/main/PRIVACY.md) is linked from the Discord Developer Portal, bot profile and command-channel topic. Contact Discord user ethxn15, or request a private conversation through SM support, for privacy/deletion questions. See [FEED-SETUP.md](FEED-SETUP.md) for the protected Windows configuration and GitHub announcement connection.
 
-Syntax checks are not static TypeScript type checking. The current preparation environment cannot resolve the npm registry, so a TypeScript compiler could not be installed. Its networking also blocks loopback HTTP connections. Controlled tests exercise the real request handler with in-process Node streams and fixture fetch responses. User-launched service sockets, HTTPS routing and Discord help rendering are now verified through the browser. Live Hypixel data, release posting, Docker and GitHub Actions execution remain unverified.
+Syntax checks are not static TypeScript type checking. Controlled tests exercise the real request handler with in-process Node streams and fixture fetch responses. User-launched service sockets, HTTPS routing and Discord help rendering were verified during the connection trial. Live Hypixel data, GitHub-to-Discord announcement delivery and Docker remain unverified; publishing source does not enable them.
 
 ## Configure later
 
