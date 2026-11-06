@@ -24,7 +24,7 @@ Local verification on 6 November 2026: 38/38 controlled tests passed and all 28 
 
 The owner selected local hosting and started both the bot and an approved temporary Cloudflare tunnel. Four SM guild commands are registered, localhost and public HTTPS health checks return status ok, and Discord accepted the interaction endpoint. A real /help invocation in bot-commands returned the expected private response with support and download links. Statistics and release feeds remain disabled, and receipts remain in memory. See LOCAL-START.md for launch instructions. The tunnel address changes when restarted; both user-run windows must remain open.
 
-The separate public repository is https://github.com/1tsethan/sparkling-mutuals-bot. It currently contains the public privacy notice and setup overview; runtime source remains in this local project. The [privacy notice](https://github.com/1tsethan/sparkling-mutuals-bot/blob/main/PRIVACY.md) is linked from the Discord Developer Portal, bot profile and command-channel topic. Contact Discord user ethxn15, or request a private conversation through SM support, for privacy/deletion questions.
+The separate public repository is https://github.com/1tsethan/sparkling-mutuals-bot. The [privacy notice](https://github.com/1tsethan/sparkling-mutuals-bot/blob/main/PRIVACY.md) is linked from the Discord Developer Portal, bot profile and command-channel topic. Contact Discord user ethxn15, or request a private conversation through SM support, for privacy/deletion questions. See [FEED-SETUP.md](FEED-SETUP.md) for the protected Windows configuration and GitHub announcement connection.
 
 Syntax checks are not static TypeScript type checking. The current preparation environment cannot resolve the npm registry, so a TypeScript compiler could not be installed. Its networking also blocks loopback HTTP connections. Controlled tests exercise the real request handler with in-process Node streams and fixture fetch responses. User-launched service sockets, HTTPS routing and Discord help rendering are now verified through the browser. Live Hypixel data, release posting, Docker and GitHub Actions execution remain unverified.
 
@@ -40,6 +40,7 @@ Copy .env.example to a private .env only when ready to configure a deployment, o
 - SM_NOTIFICATION_SECRET is a separate random secret shared only by the host and the GitHub notification workflow.
 - SM_GITHUB_READ_TOKEN is optional. If public GitHub limits prove insufficient, use a narrowly scoped read credential for the official repository, with no mutation permissions.
 - SM_DATA_FILE must reside on durable storage. Keep one service instance using that SQLite file; shared caches/budgets are not yet designed for multiple independent replicas.
+- SM_RECEIPT_KEY is a 32-byte key supplied as 64 hexadecimal characters through private host configuration. Persistent receipts require it, and notifications cannot use an in-memory database. The Windows feed launcher loads it from an account-protected file automatically; do not paste it into GitHub or chat.
 
 The server always restricts guild access to Sparkling Mutuals. Every public message destination is checked against Discord's actual guild metadata. No Administrator, moderation or message-content access is required.
 
@@ -85,7 +86,7 @@ This records a human-confirmed existing message; it sends nothing and does not i
 
 ## Data retention and operations
 
-Derived profiles expire after 60 seconds, name mappings after one hour, and member cooldowns after ten seconds. These memory caches are bounded, are deleted by timers even while idle, and are cleared on restart. Duplicate interaction IDs are purged from SQLite on their fifteen-minute deadline while running, or at startup following downtime; they do not contain interaction tokens or player statistics. This is logical database deletion, not guaranteed secure erasure from storage media or backups. Software-notification receipts persist until the integration is retired.
+Derived profiles expire after 60 seconds, name mappings after one hour, and member cooldowns after ten seconds. These memory caches are bounded, are deleted by timers even while idle, and are cleared on restart. The encrypted release-feed store holds duplicate interaction IDs only in memory for fifteen minutes; they do not contain interaction tokens or player statistics. Software-notification receipts persist in AES-256-GCM encrypted SQLite payloads until the integration is retired. Logical deletion is not guaranteed secure erasure from storage media or backups. Losing the receipt key is a recovery problem, not a reason to reset the ledger and risk duplicate announcements.
 
 Profile data and credentials are not logged by the application. Logs contain timestamp and error category only. Configure the host's log retention to seven days as proposed, and check any provider-level request logging before publishing the data notice. Disabling stats or notifications separately is supported by the feature switches; restart after changing configuration.
 

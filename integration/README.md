@@ -1,28 +1,13 @@
 # Mod repository integration
 
-These are preparation files. The mod repository, publisher and GitHub secrets have not been changed.
+The adjacent discord-notify.yml is the tested template for .github/workflows/discord-notify.yml in johnceoskyblock/sparkling-mutuals. The same file is prepared on the isolated codex/discord-release-notifications mod branch, along with beta-publisher classification checks. It is not active until that change reaches master and its configuration is supplied.
 
-## Verified build notifications
+See [FEED-SETUP.md](../FEED-SETUP.md) for local configuration, GitHub variable/secret names, a controlled official-run test and manual receipt reconciliation.
 
-After the bot is deployed, review discord-notify.yml and add it as .github/workflows/discord-notify.yml on the mod repository's default branch. Configure SM_NOTIFICATION_URL as a repository variable and SM_NOTIFICATION_SECRET as a repository secret. The latter must match the bot host's dedicated notification secret. No bot token or Hypixel key belongs in GitHub Actions.
+The workflow responds to completed official build/release workflows. Action builds must be successful master pushes; releases must use vX.Y.Z or vX.Y.Z-beta.N tags. A manual workflow test takes a real official run ID and is permitted only from master. The workflow checks out no repository code and executes no artifacts or downloaded scripts. It has contents:read only. Its inline Python sender is exercised by scripts/test_discord_notify.py in the mod change.
 
-The template listens for completed build/release workflows, executes no checked-out code or artifacts, and forwards only the official repository and run identifier. The bot independently verifies that the run is a successful official push, its workflow path and approved branch/tag, and the expected artifacts or release assets. Unapproved branches are rejected rather than posted.
+The bot independently validates the HMAC, official repository/run metadata, workflow path, branch/tag and all three artifact or JAR targets. A failed notification marks only the dedicated notification workflow as failed; it does not rebuild or republish software. Pending or uncertain sends require receipt review rather than a blind retry.
 
-Review the Actions workflow template on GitHub before enabling it. It has not been executed on a GitHub runner in this local environment.
+GitHub stores only SM_NOTIFICATION_SECRET for this connection. The bot token and receipt-encryption key remain protected on the local Windows host. Hypixel is not involved in GitHub announcements, and stats stay disabled.
 
-## Beta publication change still required
-
-The current mod publisher in buildSrc/src/main/kotlin/PublishReleaseTask.kt creates a draft with prerelease=false. For the proposed vX.Y.Z-beta.N convention, change publication classification and its tests before publishing a beta:
-
-1. Validate the tag against the version inside all three target JARs.
-2. Mark beta tags as GitHub prereleases when staging and verify that classification on existing drafts and published-release no-op checks.
-3. Preserve the current exactly-three-target, digest, staging and tag-commit checks.
-4. Reject a stable-tag/prerelease or beta-tag/stable mismatch rather than silently reclassifying a published release.
-5. Verify beta updates do not displace the latest stable release and are handled correctly by the mod's update checker.
-6. Add focused Kotlin tests and run the mod's existing build/release checks in its own checkout.
-
-No untested Kotlin patch is supplied here. The bot rejects incorrectly classified beta publications until the publisher is updated. Modrinth publication is a separate optional integration.
-
-## Credentials and hosting
-
-Select hosting and register the Discord and Hypixel applications separately. The local package can be reviewed and tested without either credential. Keep live feature switches off until those setup steps and an SM-only trial have been completed.
+Beta publication has a prepared, regression-tested change: beta tags become GitHub prereleases and cannot become latest stable; stable/beta classification mismatches on drafts and published releases are rejected. Existing three-target, tag-commit, digest, staged-upload and published-immutability checks remain. The mod update checker already excludes drafts and prereleases. Modrinth publication remains a separate integration.

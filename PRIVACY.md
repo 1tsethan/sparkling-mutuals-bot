@@ -6,7 +6,7 @@ This notice covers the Sparkling Mutuals Discord bot (application ID 15682039729
 
 ## Current service
 
-The bot is being tested on the operator's Windows computer, connected through a temporary Cloudflare Tunnel. The /help command is available for testing. Safari statistics and automatic release announcements are disabled during setup. This notice describes the current handling and the implemented statistics features that will be enabled only after API approval and activation.
+The bot is being tested on the operator's Windows computer, connected through a temporary Cloudflare Tunnel. The /help command has been tested successfully. Safari statistics remain disabled pending API approval and activation. Automatic release announcements are being activated separately. This notice covers both the initial memory-only trial and the release-feed configuration described below.
 
 ## Information processed and why
 
@@ -18,7 +18,9 @@ Replies are private to the requester by default. Selecting share publishes a suc
 
 ## Retention and storage
 
-The current launcher uses process memory, including an in-memory receipt database. It does not intentionally save credentials, interaction payloads, player profiles or interaction receipts to disk.
+The initial Start-Local launcher uses process memory, including an in-memory receipt database. The release-feed launcher stores software-announcement receipts in an encrypted local SQLite database so restarts and retries do not duplicate posts. These receipts contain the public software notice identifier, destination channel ID, Discord message ID when confirmed, content hash and delivery state; they do not contain player statistics or interaction tokens. They remain until the integration is retired or the operator removes them after reconciling delivery. A pending or uncertain receipt is kept for review rather than automatically resent.
+
+The release-feed configuration saves the bot credential and its separate signing/encryption keys in a Windows account-protected local file. Only processes running as that Windows user can normally decrypt that configuration. Secrets, Discord receipt identifiers and receipt content are not intentionally written as plaintext to source files or the persistent receipt database. Interaction payloads and profile results are not intentionally saved to disk. Command duplicate IDs and cooldowns continue to be held in memory with the following limits:
 
 - Derived player results expire after 60 seconds.
 - Minecraft name-to-UUID mappings expire after one hour.
@@ -34,7 +36,7 @@ Public replies and support messages remain on Discord under Discord's retention 
 
 ## Service providers and disclosure
 
-Discord delivers commands and responses; Cloudflare transports HTTPS requests to the local bot. Mojang and Hypixel receive the lookup identifiers described above when statistics are enabled. GitHub hosts this notice and the project's public software information. These services may process network metadata and maintain their own logs under their policies:
+Discord delivers commands and responses; Cloudflare transports HTTPS requests to the local bot. Mojang and Hypixel receive the lookup identifiers described above when statistics are enabled. GitHub hosts this notice and public software information. GitHub Actions sends signed software workflow identifiers to request announcements; the bot reads the official public run/release/artifact metadata before posting. GitHub stores only the dedicated notification signing secret, not the Discord bot token, Hypixel key or local receipt-encryption key. These services may process network metadata and maintain their own logs under their policies:
 
 - [Discord privacy policy](https://discord.com/privacy)
 - [Cloudflare privacy policy](https://www.cloudflare.com/privacypolicy/)
@@ -48,8 +50,8 @@ The bot does not sell user data, use it for advertising, profile relationships o
 
 For bot issues, privacy questions, data-deletion requests or reports of misuse, contact the server owner **ethxn15** on Discord. You can also use [SM support](https://discord.com/channels/1567856303341051905/1567859199491186749) to request a private conversation with the owner. Do not put credentials or sensitive details in a public support post.
 
-The operator can clear the bot's current memory by stopping it. For a shared bot reply, provide its message link so the operator can review removal in Discord. Requests concerning providers' independent records must also be directed to the relevant provider. You may stop using the bot at any time.
+The operator can clear the bot's current memory by stopping it. For a shared bot reply or announcement, provide its message link so the operator can review removal in Discord and any associated receipt. Database deletion is logical deletion and does not guarantee secure erasure from storage media or backups. Requests concerning providers' independent records must also be directed to the relevant provider. You may stop using the bot at any time.
 
 ## Changes
 
-Persistent storage, release-notification receipts, account linking, additional providers or other material changes require an updated notice before those features are enabled. The current trial does not create permanent release-announcement receipts because release feeds are disabled.
+Account linking, additional providers or other material changes require an updated notice before those features are enabled. The memory-only trial creates no permanent announcement receipts; the release-feed launcher uses the encrypted receipt retention described above.

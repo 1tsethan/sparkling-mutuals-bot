@@ -1,53 +1,104 @@
-# Proposed new file in the MOD repository: .github/workflows/discord-notify.yml
-# Review and merge separately; this template has not been installed.
 name: Discord notifications
 on:
   workflow_run:
     workflows: [build, release]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: Verified notice type to test or retry
+        required: true
+        type: choice
+        options: [action, release]
+      run_id:
+        description: Existing official successful push workflow run ID
+        required: true
+        type: string
+
 permissions:
   contents: read
+
+concurrency:
+  group: discord-notify-${{ github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   notify:
     if: >-
       github.repository == 'johnceoskyblock/sparkling-mutuals' &&
+      ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'workflow_run' &&
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_repository.full_name == 'johnceoskyblock/sparkling-mutuals'
+      github.event.workflow_run.head_repository.full_name == 'johnceoskyblock/sparkling-mutuals' &&
+      ((github.event.workflow_run.name == 'build' && github.event.workflow_run.head_branch == 'master') ||
+      github.event.workflow_run.name == 'release')))
     runs-on: ubuntu-24.04
+    timeout-minutes: 3
     steps:
-      # No checkout, no execution of workflow artifacts and no PR code.
+      # No checkout or execution of workflow artifacts, pull-request code or downloaded scripts.
       - name: Request a verified Discord announcement
-        continue-on-error: true
         env:
           SM_NOTIFICATION_URL: ${{ vars.SM_NOTIFICATION_URL }}
           SM_NOTIFICATION_SECRET: ${{ secrets.SM_NOTIFICATION_SECRET }}
         shell: python
         run: |
-          import hashlib, hmac, json, os, time, urllib.request, urllib.parse
-          run = json.load(open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8"))["workflow_run"]
-          destination = os.environ["SM_NOTIFICATION_URL"]
-          secret = os.environ["SM_NOTIFICATION_SECRET"]
+          import hashlib, hmac, json, os, re, time, urllib.request, urllib.parse
+          repository = "johnceoskyblock/sparkling-mutuals"
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as stream:
+              event = json.load(stream)
+          if (os.environ.get("GITHUB_REPOSITORY") != repository
+              or event.get("repository", {}).get("full_name") != repository):
+              raise SystemExit("Notification is restricted to the official repository.")
+          if os.environ.get("GITHUB_EVENT_NAME") == "workflow_dispatch":
+              inputs = event.get("inputs", {})
+              kind, run_id = inputs.get("kind"), inputs.get("run_id")
+              if os.environ.get("GITHUB_REF") != "refs/heads/master":
+                  raise SystemExit("Run notification tests from master.")
+          elif os.environ.get("GITHUB_EVENT_NAME") == "workflow_run":
+              run = event.get("workflow_run", {})
+              source, head = run.get("repository", {}), run.get("head_repository", {})
+              eligible = (run.get("event") == "push" and run.get("status") == "completed"
+                  and run.get("conclusion") == "success" and source.get("full_name") == repository
+                  and head.get("full_name") == repository and head.get("id") == source.get("id"))
+              if run.get("path") == ".github/workflows/build.yml" and run.get("head_branch") == "master":
+                  kind = "action"
+              elif (run.get("path") == ".github/workflows/release.yml"
+                  and re.fullmatch(r"v\d+\.\d+\.\d+(?:-beta\.\d+)?", str(run.get("head_branch", "")))):
+                  kind = "release"
+              else:
+                  eligible = False
+              if not eligible:
+                  print("Skipped ineligible workflow.")
+                  raise SystemExit(0)
+              run_id = str(run.get("id", ""))
+          else:
+              raise SystemExit("Unsupported notification event.")
+          if kind not in ("action", "release") or not re.fullmatch(r"\d{1,20}", str(run_id or "")):
+              raise SystemExit("A verified notice kind and numeric run ID are required.")
+          destination, secret = os.environ.get("SM_NOTIFICATION_URL", ""), os.environ.get("SM_NOTIFICATION_SECRET", "")
           parsed = urllib.parse.urlsplit(destination)
           if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
-              or parsed.query or parsed.fragment or parsed.path != "/notifications" or len(secret) < 32):
-              raise SystemExit("Configure the HTTPS bot notification URL and signing secret.")
-          kind = "release" if run["name"] == "release" else "action"
-          body = json.dumps({"repository": "johnceoskyblock/sparkling-mutuals",
-                             "kind": kind, "runId": str(run["id"])}, separators=(",", ":")).encode()
+              or parsed.query or parsed.fragment or parsed.path != "/notifications"
+              or not re.fullmatch(r"[a-f0-9]{64}", secret)):
+              raise SystemExit("Configure the HTTPS notification endpoint and signing secret.")
+          body = json.dumps({"repository": repository, "kind": kind, "runId": str(run_id)}, separators=(",", ":")).encode()
           stamp = str(int(time.time()))
           signature = hmac.new(secret.encode(), stamp.encode() + b"." + body, hashlib.sha256).hexdigest()
           class NoRedirect(urllib.request.HTTPRedirectHandler):
-              def redirect_request(self, req, fp, code, msg, headers, newurl):
+              def redirect_request(self, req, fp, code, msg, hdrs, newurl):
                   return None
           request = urllib.request.Request(destination, data=body, headers={
               "Content-Type": "application/json", "x-sm-timestamp": stamp,
               "x-sm-signature": "sha256=" + signature}, method="POST")
           try:
-              with urllib.request.build_opener(NoRedirect).open(request, timeout=45) as response:
-                  result = json.load(response)
-              if result.get("status") not in ("sent", "duplicate"):
-                  raise ValueError("receipt needs review")
-              print("Discord announcement confirmed.")
+              with urllib.request.build_opener(NoRedirect()).open(request, timeout=45) as response:
+                  raw = response.read(65537)
+              if len(raw) > 65536:
+                  raise ValueError("Oversized response")
+              result = json.loads(raw)
+              if not isinstance(result, dict) or result.get("status") not in ("sent", "duplicate"):
+                  raise ValueError("Receipt needs review")
+              print("Discord announcement confirmed: " + result["status"] + ".")
           except Exception:
               raise SystemExit("Announcement not confirmed. Review the bot receipt before retrying.")
