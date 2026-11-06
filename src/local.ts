@@ -1,6 +1,7 @@
 import type { ReadStream } from 'node:tty';
 import type { Writable } from 'node:stream';
 import { SM_GUILD } from './config.ts';
+import type { LocalSecrets } from './local-secrets.ts';
 
 export function readSecret(input: ReadStream = process.stdin, output: Writable = process.stderr): Promise<string> {
   if (!input.isTTY || typeof input.setRawMode !== 'function')
@@ -49,4 +50,17 @@ export async function runLocalTrial(token: string, register: boolean, baseEnv: N
       throw new Error('Command registration failed; the local service was not started.');
     if (await run(['src/main.ts'], env) !== 0) throw new Error('The local service stopped with an error.');
   } finally { env.SM_DISCORD_BOT_TOKEN = ''; }
+}
+
+export async function runLocalFeeds(secrets: LocalSecrets, baseEnv: NodeJS.ProcessEnv, dataFile: string, run: ChildRunner) {
+  if (!/^[A-Za-z0-9._-]{30,300}$/.test(secrets.botToken) || !/^[a-f0-9]{64}$/.test(secrets.receiptKey) ||
+      !/^[a-f0-9]{64}$/.test(secrets.notificationSecret) || !dataFile || dataFile === ':memory:')
+    throw new Error('Protected secrets and persistent receipts are required for release feeds.');
+  const env = { ...baseEnv, SM_GUILD_ID: SM_GUILD, HOST: '127.0.0.1', PORT: '3000',
+    SM_DISCORD_BOT_TOKEN: secrets.botToken, SM_RECEIPT_KEY: secrets.receiptKey,
+    SM_NOTIFICATION_SECRET: secrets.notificationSecret, SM_HYPIXEL_API_KEY: '',
+    SM_STATS_ENABLED: 'false', SM_NOTIFICATIONS_ENABLED: 'true', SM_DEVELOPMENT_BRANCH: 'master',
+    SM_BETA_CHANNEL_ID: '1568234962619072532', SM_DATA_FILE: dataFile };
+  try { if (await run(['src/main.ts'], env) !== 0) throw new Error('The release-feed service stopped with an error.'); }
+  finally { env.SM_DISCORD_BOT_TOKEN = ''; env.SM_RECEIPT_KEY = ''; env.SM_NOTIFICATION_SECRET = ''; }
 }

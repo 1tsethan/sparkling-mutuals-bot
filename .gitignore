@@ -7,3 +7,4 @@ node_modules/
 .superpowers/
 *-verification.txt
 *-baseline.txt
+*-red.txt
