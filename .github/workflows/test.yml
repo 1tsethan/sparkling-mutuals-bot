@@ -15,6 +15,20 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24.18.0'
+      - name: Initialize Windows account protection
+        shell: powershell
+        run: |
+          # Hosted images can spend over a minute on their first Windows PowerShell launch.
+          # Initialize the native stack before the application's bounded helper is exercised.
+          Add-Type -AssemblyName System.Security
+          $smProbe = [Text.Encoding]::UTF8.GetBytes('fictional-ci-probe')
+          $smScope = [Security.Cryptography.DataProtectionScope]::CurrentUser
+          $smWrapped = [Security.Cryptography.ProtectedData]::Protect($smProbe, $null, $smScope)
+          $smRestored = [Security.Cryptography.ProtectedData]::Unprotect($smWrapped, $null, $smScope)
+          if ([Convert]::ToBase64String($smProbe) -ne [Convert]::ToBase64String($smRestored)) {
+            throw 'Windows account protection could not be initialized.'
+          }
+          Write-Output 'Windows account protection is ready.'
       - name: Run native tests including Windows secret protection
         run: node --test --test-reporter=spec test/*.test.ts
       - name: Check TypeScript syntax
