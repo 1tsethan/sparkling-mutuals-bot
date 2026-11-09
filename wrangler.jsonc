@@ -7,7 +7,6 @@
   "workers_dev": true,
   "preview_urls": false,
   "observability": {"enabled": false},
-  "limits": {"cpu_ms": 10},
   "durable_objects": {"bindings": [{"name": "BOT", "class_name": "BotActor"}]},
   "migrations": [{"tag": "v1", "new_sqlite_classes": ["BotActor"]}],
   "vars": {
