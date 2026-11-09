@@ -67,6 +67,7 @@ export class BotActor extends DurableObject<Env> {
       }
       const discord=new DiscordClient({token:config.botToken,applicationId:config.applicationId,guildId:config.guildId,allowedChannels:Object.values(config.channels)});
       const app=createApp({...config,statsEnabled:false,discord,
+        log:code=>console.log(JSON.stringify({event:'request_error',code})),
         claimInteraction:()=>false,lookup:{lookup:async()=>{throw new Error('Stats disabled');}},
         notify:async(headers,body)=>{
           // Both front door and actor have authenticated the exact raw body.
@@ -76,7 +77,16 @@ export class BotActor extends DurableObject<Env> {
           if(typeof input?.githubReadToken!=='string'||(!/^ghs_[A-Za-z0-9_.-]{20,4092}$/.test(input.githubReadToken)||input.githubReadToken.trim()!==input.githubReadToken))
             throw new BotError('invalid','A temporary GitHub Actions read token is required.');
           return new ReleaseNotifier({secret:config.notificationSecret,developmentBranch:config.developmentBranch,channels:config.channels,
-            githubReadToken:input.githubReadToken,store:{claimInteraction:()=>false,...this.noticeStore()},discord}).notify(headers,body);
+            githubReadToken:input.githubReadToken,store:{claimInteraction:()=>false,...this.noticeStore()},discord,
+            fetcher:async(url,init)=>{
+              const response=await fetch(url,init);
+              if(!response.ok) {
+                const remaining=response.headers.get('x-ratelimit-remaining')??'';
+                console.log(JSON.stringify({event:'github_request_failed',http:response.status,
+                  remaining:/^\d{1,8}$/.test(remaining)?Number(remaining):null}));
+              }
+              return response;
+            }}).notify(headers,body);
         }
       });
       try {
