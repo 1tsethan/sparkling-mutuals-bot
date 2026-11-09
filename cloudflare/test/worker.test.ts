@@ -38,9 +38,9 @@ it('help, disabled stats and foreign-guild responses stay private with no extern
   const r=await SELF.fetch(interaction({type:2,application_id:e.SM_APPLICATION_ID,guild_id:'123456789012345678',channel_id:e.SM_COMMAND_CHANNEL_ID,data:{name:'help'}}));
   expect((await r.json() as any).data.content).toMatch(/SM bot-commands/);
 });
-function github(runId='10') {
+function github(runId='10',token='ghs_'+'a'.repeat(36)) {
   const repo='johnceoskyblock/sparkling-mutuals', sha='a'.repeat(40),base='https://api.github.com/repos/'+repo;
-  routes.set(base+'/actions/runs/'+runId,init=>{expect((init?.headers as Record<string,string>).Authorization).toBe('Bearer ghs_'+'a'.repeat(36));return Response.json({
+  routes.set(base+'/actions/runs/'+runId,init=>{expect((init?.headers as Record<string,string>).Authorization).toBe('Bearer '+token);return Response.json({
     id:Number(runId),path:'.github/workflows/build.yml',status:'completed',conclusion:'success',event:'push',head_branch:'master',head_sha:sha,
     repository:{id:100,full_name:repo},head_repository:{id:100,full_name:repo}
   });});
@@ -79,6 +79,15 @@ it('429 retry deadlines survive actor recreation without an early resend',async(
   expect((await (await SELF.fetch(notice())).json() as any).status).toBe('waiting');expect(posts).toBe(1);
 });
 it('requires a temporary Actions token only after HMAC verification and never makes unauthenticated GitHub calls',async()=>{
-  const response=await SELF.fetch(notice('10',stamp(),''));expect(response.status).toBe(400);await response.text();
+  for(const token of ['', 'ghs_'+'a'.repeat(36)+'\n', 'ghs_'+'a'.repeat(4093)]) {
+    const response=await SELF.fetch(notice('10',stamp(),token));expect(response.status).toBe(400);await response.text();
+  }
   expect(globalThis.fetch).not.toHaveBeenCalled();
+});
+it('accepts current long opaque installation tokens without decoding their JWT contents',async()=>{
+  const token='ghs_12345_'+('a-_'.repeat(60))+'.'+('b'.repeat(180))+'.'+('c'.repeat(180));
+  github('10',token);channel();
+  routes.set('https://discord.com/api/v10/channels/'+e.SM_ACTION_CHANNEL_ID+'/messages',()=>Response.json({id:'1568364377130795149'}));
+  const response=await SELF.fetch(notice('10',stamp(),token));expect(response.status).toBe(200);
+  const body=await response.text();expect(body).toContain('sent');expect(body).not.toContain(token);
 });
