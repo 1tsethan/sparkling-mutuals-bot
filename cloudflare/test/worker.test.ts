@@ -15,7 +15,12 @@ function notice(runId='10',ts=stamp(),githubReadToken='ghs_'+'a'.repeat(36)) {
 }
 const stub=()=>e.BOT.get(e.BOT.idFromName('sparkling-mutuals'));
 const routes=new Map<string,(init?:RequestInit)=>Response>();
-beforeEach(()=>{routes.clear();vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{const fn=routes.get(String(url));if(!fn)throw new Error('Unexpected outbound request');return fn(init);});});
+beforeEach(()=>{routes.clear();vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{
+  // Validate the exact outbound request with the real Workers constructor;
+  // a bare mock would hide unsupported platform options such as redirect:error.
+  const request=new Request(String(url),init);
+  const fn=routes.get(request.url);if(!fn)throw new Error('Unexpected outbound request');return fn(init);
+});});
 afterEach(async()=>{vi.restoreAllMocks();await reset();});
 it('validates exact routes, methods, body limits and signatures before allocating an actor',async()=>{
   expect((await SELF.fetch('https://bot.test/health')).status).toBe(200);
