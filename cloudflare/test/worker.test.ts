@@ -20,6 +20,7 @@ afterEach(async()=>{vi.restoreAllMocks();await reset();});
 it('validates exact routes, methods, body limits and signatures before allocating an actor',async()=>{
   expect((await SELF.fetch('https://bot.test/health')).status).toBe(200);
   for(const path of ['/other','/health?x=1','/interactions/']) expect((await SELF.fetch('https://bot.test'+path)).status).toBe(404);
+  expect((await SELF.fetch('https://bot.test/migration/receipts')).status).toBe(404);
   expect((await SELF.fetch('https://bot.test/interactions')).status).toBe(405);
   expect((await SELF.fetch('https://bot.test/interactions',{method:'POST',body:'{}'})).status).toBe(401);
   expect((await SELF.fetch(interaction({type:1},'1'))).status).toBe(401);

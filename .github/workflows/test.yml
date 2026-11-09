@@ -46,5 +46,6 @@ jobs:
           node-version: '24.18.0'
           cache: npm
       - run: npm ci
+      - run: npm run check:cloudflare
       - run: npm run test:cloudflare
       - run: npm run cloudflare:build

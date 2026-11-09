@@ -14,7 +14,8 @@
     "notify": "node tools/notify.ts",
     "test:cloudflare": "vitest run",
     "cloudflare:build": "wrangler deploy --dry-run",
-    "cloudflare:deploy": "wrangler deploy"
+    "cloudflare:deploy": "wrangler deploy",
+    "check:cloudflare": "tsc -p tsconfig.cloudflare.json"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.6.0",

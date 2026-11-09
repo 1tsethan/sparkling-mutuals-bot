@@ -46,11 +46,16 @@ export class EncryptedReceiptLedger {
   private open(payload: string, context: string): any {
     try {
       if (typeof payload !== 'string' || payload.length > 16384) throw unavailable();
-      const envelope = JSON.parse(payload), iv = Buffer.from(envelope.iv, 'base64'), tag = Buffer.from(envelope.tag, 'base64');
+      const envelope = JSON.parse(payload);
+      const decode = (value: unknown) => {
+        if (typeof value !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) throw unavailable();
+        return Buffer.from(value, 'base64');
+      };
+      const iv = decode(envelope.iv), tag = decode(envelope.tag);
       if (envelope.v !== 1 || iv.length !== 12 || tag.length !== 16 || typeof envelope.data !== 'string') throw unavailable();
       const decipher = createDecipheriv('aes-256-gcm', this.key, iv);
       decipher.setAAD(Buffer.from('sm-receipts-v1:' + context)); decipher.setAuthTag(tag);
-      return JSON.parse(Buffer.concat([decipher.update(Buffer.from(envelope.data, 'base64')), decipher.final()]).toString('utf8'));
+      return JSON.parse(Buffer.concat([decipher.update(decode(envelope.data)), decipher.final()]).toString('utf8'));
     } catch { throw unavailable(); }
   }
   private transaction<T>(work: () => T): T {
@@ -136,9 +141,9 @@ export class EncryptedReceiptLedger {
     if(!/^[a-f0-9]{64}$/.test(row?.key_hash)) throw unavailable();
     const r=this.open(row.payload,row.key_hash);
     if(typeof r?.key!=='string' || !r.key.length || r.key.length>512 || this.hash(r.key)!==row.key_hash ||
-      !/^\d{17,22}$/.test(r.channel??'') || !/^[a-f0-9]{64}$/.test(r.digest??'') ||
+      typeof r.channel!=='string' || !/^\d{17,22}$/.test(r.channel) || typeof r.digest!=='string' || !/^[a-f0-9]{64}$/.test(r.digest) ||
       !['pending','sent','uncertain','retryable'].includes(r.state) || !Number.isSafeInteger(r.retry_at) || r.retry_at<0 ||
-      (r.state==='sent' ? !/^\d{17,22}$/.test(r.message??'') : r.message!==null)) throw unavailable();
+      (r.state==='sent' ? typeof r.message!=='string' || !/^\d{17,22}$/.test(r.message) : r.message!==null)) throw unavailable();
     return r;
   }
   close() {this.key.fill(0);}
