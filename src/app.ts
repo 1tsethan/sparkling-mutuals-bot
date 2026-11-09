@@ -1,4 +1,4 @@
-import { createPublicKey, verify } from 'node:crypto';
+import { verifyInteraction } from './signatures.ts';
 import { BotError, ROSTER } from './profile.ts';
 import { renderCard, helpMessage } from './commands.ts';
 import type { Message } from './commands.ts';
@@ -11,12 +11,11 @@ type Options = {
   discord: { editResponse(token: string, message: Message): Promise<void>; sendMessage(channel: string, message: Message, nonce?: string): Promise<string> };
   claimInteraction: (id: string) => boolean;
   notify: (headers: Record<string, string>, body: Buffer) => Promise<any>;
-  now?: () => number; log?: (code: string) => void;
+  now?: () => number; log?: (code: string) => void; statsEnabled?: boolean;
 };
 const privateReply = (content: string): Reply => ({ status: 200, body: { type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } } });
 export function createApp(options: Options) {
   const now = options.now ?? Date.now;
-  const publicKey = createPublicKey({ key: Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), Buffer.from(options.publicKey, 'hex')]), format: 'der', type: 'spki' });
   const cooldowns = new ExpiringMap<number>(10000, 1000, now);
   const handle = async (path: string, headers: Record<string, string>, body: Buffer): Promise<Reply> => {
     if (body.length > 65536) return { status: 413, body: { error: 'Request too large' } };
@@ -29,12 +28,7 @@ export function createApp(options: Options) {
       }
     }
     if (path !== '/interactions') return { status: 404, body: { error: 'Not found' } };
-    const stamp = headers['x-signature-timestamp'] ?? '', signature = headers['x-signature-ed25519'] ?? '';
-    let valid = false;
-    if (/^\d{1,12}$/.test(stamp) && /^[a-f0-9]{128}$/i.test(signature) && Math.abs(now() - Number(stamp) * 1000) <= 300000) {
-      try { valid = verify(null, Buffer.concat([Buffer.from(stamp), body]), publicKey, Buffer.from(signature, 'hex')); } catch {}
-    }
-    if (!valid) return { status: 401, body: { error: 'Invalid signature' } };
+    if (!verifyInteraction(headers, body, options.publicKey, now())) return { status: 401, body: { error: 'Invalid signature' } };
     let interaction: any;
     try { interaction = JSON.parse(body.toString('utf8')); } catch { return { status: 400, body: { error: 'Invalid JSON' } }; }
     if (interaction?.type === 1) return { status: 200, body: { type: 1 } };
@@ -45,6 +39,7 @@ export function createApp(options: Options) {
     const name = interaction.data?.name;
     if (name === 'help') return { status: 200, body: { type: 4, data: { ...helpMessage, flags: 64 } } };
     if (!['tickets', 'sparkling', 'safari'].includes(name)) return privateReply('Unknown SM command.');
+    if (options.statsEnabled === false) return privateReply('Safari stats are currently disabled while API access is being prepared.');
     const user = interaction.member?.user?.id;
     if (!/^\d{17,22}$/.test(user ?? '') || !/^\d{17,22}$/.test(interaction.id ?? '') ||
         typeof interaction.token !== 'string' || interaction.token.length > 300)

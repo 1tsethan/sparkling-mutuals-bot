@@ -1,4 +1,5 @@
-import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
+import { verifyNotification } from './signatures.ts';
+import { createHash } from 'node:crypto';
 import { BotError } from './profile.ts';
 import { getJson, HttpError, retryAt } from './http.ts';
 import { clean, SM_LINKS } from './commands.ts';
@@ -46,11 +47,7 @@ export class ReleaseNotifier {
     throw new BotError('invalid', 'Too many tag indirections.');
   }
   async notify(headers: Record<string, string>, raw: Buffer) {
-    const stamp = headers['x-sm-timestamp'] ?? '', signature = headers['x-sm-signature'] ?? '';
-    if (!/^\d{1,12}$/.test(stamp) || Math.abs(this.now() - Number(stamp) * 1000) > 300000 ||
-        !/^sha256=[a-f0-9]{64}$/.test(signature)) throw new BotError('auth', 'Invalid notification signature.');
-    const expected = createHmac('sha256', this.options.secret).update(stamp + '.').update(raw).digest();
-    if (!timingSafeEqual(expected, Buffer.from(signature.slice(7), 'hex'))) throw new BotError('auth', 'Invalid notification signature.');
+    if (!verifyNotification(headers, raw, this.options.secret, this.now())) throw new BotError('auth', 'Invalid notification signature.');
     let input: any;
     try { input = JSON.parse(raw.toString('utf8')); } catch { throw new BotError('invalid', 'Invalid notification.'); }
     requireValid(input && input.repository === REPOSITORY && ['action', 'release'].includes(input.kind) &&
