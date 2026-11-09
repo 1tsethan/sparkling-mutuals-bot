@@ -33,3 +33,19 @@ jobs:
         run: node --test --test-reporter=spec test/*.test.ts
       - name: Check TypeScript syntax
         run: node tools/check.ts
+
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run check:cloudflare
+      - run: npm run test:cloudflare
+      - run: npm run cloudflare:build

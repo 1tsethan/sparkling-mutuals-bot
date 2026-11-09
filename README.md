@@ -1,14 +1,15 @@
 # Sparkling Mutuals Discord Bot
 
-Local implementation of the approved SM bot design. It provides /tickets, /sparkling, /safari and /help through signed HTTP interactions and verifies stable, beta and action-build announcements before posting as the same bot.
+Implementation of the approved SM bot design, with Windows and Cloudflare hosting adapters. It provides /tickets, /sparkling, /safari and /help through signed HTTP interactions and verifies stable, beta and action-build announcements before posting as the same bot.
 
 The Discord application has been created under ethxn15 and its bot installed in Sparkling Mutuals, with the existing blue sparkle SM logo as its avatar. It is private, supports guild installation only, and was authorized for View Channels, Send Messages and Embed Links. Its public application ID, verification key and actual bot-commands channel ID are recorded in .env.example. No bot token was displayed or reset.
 
-The local connection trial is active for private /help responses. Statistics remain disabled pending Hypixel approval. GitHub announcements are prepared for master action builds and the existing stable/beta channels; activation requires the protected configuration, updated public privacy notice and companion mod workflow described in [FEED-SETUP.md](FEED-SETUP.md).
+Private /help responses and automatic verified master-build announcements have been tested live. Statistics remain disabled pending Hypixel approval. Cloudflare hosting is prepared in a separate Worker with encrypted SQLite Durable Object receipts; deployment and cutover are tracked separately from code readiness. See [Cloudflare hosting](docs/cloudflare-hosting.md) for Free-plan setup, ciphertext transfer and rollback. The existing WebSocket service is unchanged.
+
 
 ## Local checks
 
-Requires Node 24.18 or newer. Runtime dependencies are all built into Node; no npm install is needed.
+Requires Node 24.18 or newer. The Windows runtime uses only built-in Node modules. Cloudflare development, tests and deployment require `npm ci`; pinned tooling and its lockfile are included.
 
 Run from this folder:
 
@@ -22,11 +23,12 @@ The last three commands print fictional responses, a command registration previe
 
 Local verification on 7 November 2026: all 49 native tests passed on Windows with Node 24.18.0, including real DPAPI round trips, encrypted SQLite restart/concurrency/tamper cases and launcher boundaries. All 35 TypeScript files passed syntax checks. The GitHub workflow template passes actionlint, and its actual inline sender passes four controlled Python tests in the companion mod repository.
 
-The owner selected local hosting and started both the bot and an approved temporary Cloudflare tunnel. Four SM guild commands are registered, localhost and public HTTPS health checks return status ok, and Discord accepted the interaction endpoint. A real /help invocation in bot-commands returned the expected private response with support and download links. Statistics and release feeds remain disabled, and receipts remain in memory. See LOCAL-START.md for launch instructions. The tunnel address changes when restarted; both user-run windows must remain open.
+The original local host and temporary tunnel handled a verified official master build and duplicate replay successfully. That host remains authoritative until the Cloudflare migration checklist is completed. Statistics are disabled on both hosting configurations. The Cloudflare Worker has no Gateway connection and needs no idle keep-alive.
+
 
 The separate public repository is https://github.com/1tsethan/sparkling-mutuals-bot. The [privacy notice](https://github.com/1tsethan/sparkling-mutuals-bot/blob/main/PRIVACY.md) is linked from the Discord Developer Portal, bot profile and command-channel topic. Contact Discord user ethxn15, or request a private conversation through SM support, for privacy/deletion questions. See [FEED-SETUP.md](FEED-SETUP.md) for the protected Windows configuration and GitHub announcement connection.
 
-Syntax checks are not static TypeScript type checking. Controlled tests exercise the real request handler with in-process Node streams and fixture fetch responses. User-launched service sockets, HTTPS routing and Discord help rendering were verified during the connection trial. Live Hypixel data, GitHub-to-Discord announcement delivery and Docker remain unverified; publishing source does not enable them.
+Syntax checks are not static TypeScript type checking. Controlled tests exercise the real request handler with in-process Node streams and fixture fetch responses. User-launched service sockets, HTTPS routing and Discord help rendering were verified during the connection trial. Live Hypixel data and Docker remain unverified; publishing source does not enable them.
 
 ## Configure later
 
@@ -92,7 +94,7 @@ Profile data and credentials are not logged by the application. Logs contain tim
 
 ## Source references
 
-The Safari roster and parsing behavior were reviewed against SM commit f2cccafc33f0b7a391a8531189e12a0214303660. The roster credits CritterMod v0.9.0, commit cdfcb8effb4b3158df50f0c0960c11e536931840. The bot is a separate project; its repository and license have not yet been selected.
+The Safari roster and parsing behavior were reviewed against SM commit f2cccafc33f0b7a391a8531189e12a0214303660. The roster credits CritterMod v0.9.0, commit cdfcb8effb4b3158df50f0c0960c11e536931840. The bot is a separate project in this repository.
 
 - https://github.com/johnceoskyblock/sparkling-mutuals/blob/f2cccafc33f0b7a391a8531189e12a0214303660/src/main/kotlin/net/johnceo/sparklingmutuals/api/SafariProfile.kt
 - https://github.com/johnceoskyblock/sparkling-mutuals/blob/f2cccafc33f0b7a391a8531189e12a0214303660/src/main/kotlin/net/johnceo/sparklingmutuals/safari/SafariRoster.kt

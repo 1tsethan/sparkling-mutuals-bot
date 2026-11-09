@@ -1,0 +1,25 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sparkling-mutuals-discord",
+  "main": "cloudflare/worker.ts",
+  "compatibility_date": "2026-11-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {"enabled": false},
+  "durable_objects": {"bindings": [{"name": "BOT", "class_name": "BotActor"}]},
+  "migrations": [{"tag": "v1", "new_sqlite_classes": ["BotActor"]}],
+  "vars": {
+    "SM_APPLICATION_ID": "1568203972978679888",
+    "SM_PUBLIC_KEY": "5e070c9b653a18bd8744c4ad0004eb198612e24a933a364b56beba0439ee632b",
+    "SM_GUILD_ID": "1567856303341051905",
+    "SM_COMMAND_CHANNEL_ID": "1568200051891642388",
+    "SM_RELEASE_CHANNEL_ID": "1568145030500057098",
+    "SM_ACTION_CHANNEL_ID": "1568145100683485184",
+    "SM_BETA_CHANNEL_ID": "1568234962619072532",
+    "SM_DEVELOPMENT_BRANCH": "master",
+    "SM_STATS_ENABLED": "false",
+    "SM_NOTIFICATIONS_ENABLED": "false",
+    "SM_MIGRATION_ENABLED": "false"
+  }
+}
