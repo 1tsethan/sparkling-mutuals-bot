@@ -13,6 +13,7 @@ test('secret upload uses child stdin only, suppresses child output and drops unr
     const input=JSON.parse(options.input.toString());assert.equal(input.SM_DISCORD_BOT_TOKEN,secrets.botToken);
     assert.equal(input.SM_NOTIFICATION_SECRET,secrets.notificationSecret);assert.equal(input.SM_RECEIPT_KEY,secrets.receiptKey);
     assert.equal(JSON.stringify(args).includes(secrets.botToken),false);assert.equal(options.windowsHide,true);assert.equal(options.env.SM_HYPIXEL_API_KEY,undefined);
+    assert.equal(options.env.WRANGLER_LOG_SANITIZE,'true');assert.equal(options.env.WRANGLER_LOG,'none');
     return {status:0,stdout:Buffer.from(secrets.botToken),stderr:Buffer.from('')};
   });assert.equal(calls,1);
   assert.throws(()=>uploadCloudflareSecrets(secrets,()=>({status:1,stderr:Buffer.from(secrets.botToken)})),error=>!(error as Error).message.includes(secrets.botToken));

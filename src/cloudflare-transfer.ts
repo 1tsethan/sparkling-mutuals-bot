@@ -18,6 +18,7 @@ export function uploadCloudflareSecrets(secrets:LocalSecrets,runner:typeof spawn
   const input=Buffer.from(JSON.stringify({SM_DISCORD_BOT_TOKEN:secrets.botToken,SM_NOTIFICATION_SECRET:secrets.notificationSecret,SM_RECEIPT_KEY:secrets.receiptKey}));
   // Wrangler loads its own existing account login; do not inherit unrelated SM keys.
   const env=Object.fromEntries(Object.entries(process.env).filter(([name])=>!name.startsWith('SM_')&&name!=='NODE_OPTIONS')) as NodeJS.ProcessEnv;
+  env.WRANGLER_LOG_SANITIZE='true';env.WRANGLER_LOG='none';env.WRANGLER_SEND_METRICS='false';
   const root=fileURLToPath(new URL('../',import.meta.url));
   try {
     const result=runner(process.execPath,[fileURLToPath(new URL('../node_modules/wrangler/bin/wrangler.js',import.meta.url)),'secret','bulk','--name','sparkling-mutuals-discord'],
