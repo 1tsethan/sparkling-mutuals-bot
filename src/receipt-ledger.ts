@@ -96,9 +96,11 @@ export class EncryptedReceiptLedger {
     const record = this.read(key);
     if (record?.state === 'pending') { record.state = 'uncertain'; this.save(record); }
   }); }
-  retryable(key: string, at: number) { this.transaction(() => {
+  retryable(key: string, at: number) {
+    if (!Number.isFinite(at) || at < 0 || at > Number.MAX_SAFE_INTEGER) throw unavailable();
+    this.transaction(() => {
     const record = this.read(key);
-    if (record?.state === 'pending') { record.state = 'retryable'; record.retry_at = at; this.save(record); }
+    if (record?.state === 'pending') { record.state = 'retryable'; record.retry_at = Math.ceil(at); this.save(record); }
   }); }
   list() {
     return this.db.all('SELECT key_hash,payload FROM encrypted_notices ORDER BY key_hash').map((row: any) => {
@@ -142,7 +144,7 @@ export class EncryptedReceiptLedger {
     const r=this.open(row.payload,row.key_hash);
     if(typeof r?.key!=='string' || !r.key.length || r.key.length>512 || this.hash(r.key)!==row.key_hash ||
       typeof r.channel!=='string' || !/^\d{17,22}$/.test(r.channel) || typeof r.digest!=='string' || !/^[a-f0-9]{64}$/.test(r.digest) ||
-      !['pending','sent','uncertain','retryable'].includes(r.state) || !Number.isSafeInteger(r.retry_at) || r.retry_at<0 ||
+      !['pending','sent','uncertain','retryable'].includes(r.state) || typeof r.retry_at!=='number' || !Number.isFinite(r.retry_at) || r.retry_at<0 || r.retry_at>Number.MAX_SAFE_INTEGER ||
       (r.state==='sent' ? typeof r.message!=='string' || !/^\d{17,22}$/.test(r.message) : r.message!==null)) throw unavailable();
     return r;
   }

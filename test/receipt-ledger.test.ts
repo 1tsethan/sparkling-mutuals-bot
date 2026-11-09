@@ -53,3 +53,15 @@ test('authenticated ciphertext still requires valid receipt fields before import
     assert.throws(()=>b.importSnapshot(bad));assert.equal(b.list().length,0);
   }
 }));
+test('new fractional retry deadlines round upward and valid legacy fractions migrate unchanged',()=>fixture((a,b)=>{
+  a.claim('fraction',channel,digest,1000);a.retryable('fraction',2234.5);
+  assert.equal(a.claim('fraction',channel,digest,2234.5),'waiting');
+  assert.equal(a.claim('fraction',channel,digest,2235),'new');
+  const snapshot=a.exportSnapshot(),hash=snapshot.rows[0].key_hash,iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',key,iv);
+  cipher.setAAD(Buffer.from('sm-receipts-v1:'+hash));
+  const data=Buffer.concat([cipher.update(JSON.stringify({key:'fraction',channel,digest,state:'retryable',message:null,retry_at:2234.5}),'utf8'),cipher.final()]);
+  snapshot.rows[0].payload=JSON.stringify({v:1,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),data:data.toString('base64')});
+  b.importSnapshot(snapshot);assert.deepEqual(b.exportSnapshot(),snapshot);
+  assert.equal(b.claim('fraction',channel,digest,2234),'waiting');
+  assert.equal(b.claim('fraction',channel,digest,2235),'new');
+}));
