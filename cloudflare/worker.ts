@@ -8,6 +8,7 @@ import { createApp } from '../src/app.ts';
 import { DiscordClient } from '../src/discord.ts';
 import { ReleaseNotifier } from '../src/releases.ts';
 import { verifyMigration } from '../src/receipt-migration.ts';
+import { BotError } from '../src/profile.ts';
 
 export function json(body:unknown,status=200) {
   return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -67,8 +68,16 @@ export class BotActor extends DurableObject<Env> {
       const discord=new DiscordClient({token:config.botToken,applicationId:config.applicationId,guildId:config.guildId,allowedChannels:Object.values(config.channels)});
       const app=createApp({...config,statsEnabled:false,discord,
         claimInteraction:()=>false,lookup:{lookup:async()=>{throw new Error('Stats disabled');}},
-        notify:async(headers,body)=>new ReleaseNotifier({secret:config.notificationSecret,developmentBranch:config.developmentBranch,channels:config.channels,
-          store:{claimInteraction:()=>false,...this.noticeStore()},discord}).notify(headers,body)
+        notify:async(headers,body)=>{
+          // Both front door and actor have authenticated the exact raw body.
+          // This Actions installation token lives only for this request and is
+          // sent only to the verifier's fixed official GitHub API origin.
+          let input:any;try{input=JSON.parse(body.toString('utf8'));}catch{throw new BotError('invalid','Invalid notification.');}
+          if(typeof input?.githubReadToken!=='string'||!/^ghs_[A-Za-z0-9_]{20,250}$/.test(input.githubReadToken))
+            throw new BotError('invalid','A temporary GitHub Actions read token is required.');
+          return new ReleaseNotifier({secret:config.notificationSecret,developmentBranch:config.developmentBranch,channels:config.channels,
+            githubReadToken:input.githubReadToken,store:{claimInteraction:()=>false,...this.noticeStore()},discord}).notify(headers,body);
+        }
       });
       try {
         const reply=await app(authorized.path,authorized.headers,authorized.raw);

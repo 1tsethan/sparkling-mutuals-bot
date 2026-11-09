@@ -9,8 +9,8 @@ function interaction(data:any,ts=stamp()) {
   const body=JSON.stringify(data);
   return new Request('https://bot.test/interactions',{method:'POST',body,headers:{'x-signature-timestamp':ts,'x-signature-ed25519':sign(null,Buffer.from(ts+body),privateKey).toString('hex')}});
 }
-function notice(runId='10',ts=stamp()) {
-  const body=JSON.stringify({kind:'action',runId,repository:'johnceoskyblock/sparkling-mutuals'});
+function notice(runId='10',ts=stamp(),githubReadToken='ghs_'+'a'.repeat(36)) {
+  const body=JSON.stringify({kind:'action',runId,repository:'johnceoskyblock/sparkling-mutuals',githubReadToken});
   return new Request('https://bot.test/notifications',{method:'POST',body,headers:{'x-sm-timestamp':ts,'x-sm-signature':'sha256='+createHmac('sha256','s'.repeat(32)).update(ts+'.'+body).digest('hex')}});
 }
 const stub=()=>e.BOT.get(e.BOT.idFromName('sparkling-mutuals'));
@@ -40,10 +40,10 @@ it('help, disabled stats and foreign-guild responses stay private with no extern
 });
 function github(runId='10') {
   const repo='johnceoskyblock/sparkling-mutuals', sha='a'.repeat(40),base='https://api.github.com/repos/'+repo;
-  routes.set(base+'/actions/runs/'+runId,()=>Response.json({
+  routes.set(base+'/actions/runs/'+runId,init=>{expect((init?.headers as Record<string,string>).Authorization).toBe('Bearer ghs_'+'a'.repeat(36));return Response.json({
     id:Number(runId),path:'.github/workflows/build.yml',status:'completed',conclusion:'success',event:'push',head_branch:'master',head_sha:sha,
     repository:{id:100,full_name:repo},head_repository:{id:100,full_name:repo}
-  }));
+  });});
   routes.set(base+'/actions/runs/'+runId+'/artifacts?per_page=100',()=>Response.json({artifacts:['26.1.2','26.2','26.3'].map((mc,i)=>({
     id:40+i,name:'jar-mc'+mc,size_in_bytes:100,expired:false,expires_at:'2099-01-01T00:00:00Z',
     workflow_run:{id:Number(runId),head_sha:sha,repository_id:100,head_repository_id:100}
@@ -77,4 +77,8 @@ it('429 retry deadlines survive actor recreation without an early resend',async(
   const failed=await SELF.fetch(notice());expect(failed.status).toBe(503);await failed.text();
   await evictDurableObject(stub());
   expect((await (await SELF.fetch(notice())).json() as any).status).toBe('waiting');expect(posts).toBe(1);
+});
+it('requires a temporary Actions token only after HMAC verification and never makes unauthenticated GitHub calls',async()=>{
+  const response=await SELF.fetch(notice('10',stamp(),''));expect(response.status).toBe(400);await response.text();
+  expect(globalThis.fetch).not.toHaveBeenCalled();
 });

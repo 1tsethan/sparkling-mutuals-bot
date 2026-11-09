@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: discord-notify-${{ github.event.workflow_run.id || github.run_id }}
@@ -41,6 +42,7 @@ jobs:
         env:
           SM_NOTIFICATION_URL: ${{ vars.SM_NOTIFICATION_URL }}
           SM_NOTIFICATION_SECRET: ${{ secrets.SM_NOTIFICATION_SECRET }}
+          SM_GITHUB_READ_TOKEN: ${{ github.token }}
         shell: python
         run: |
           import hashlib, hmac, json, os, re, time, urllib.request, urllib.parse
@@ -82,14 +84,17 @@ jobs:
               or parsed.query or parsed.fragment or parsed.path != "/notifications"
               or not re.fullmatch(r"[a-f0-9]{64}", secret)):
               raise SystemExit("Configure the HTTPS notification endpoint and signing secret.")
-          body = json.dumps({"repository": repository, "kind": kind, "runId": str(run_id)}, separators=(",", ":")).encode()
+          read_token = os.environ.get("SM_GITHUB_READ_TOKEN", "")
+          if not re.fullmatch(r"ghs_[A-Za-z0-9_]{20,250}", read_token):
+              raise SystemExit("A temporary GitHub Actions read token is required.")
+          body = json.dumps({"repository": repository, "kind": kind, "runId": str(run_id), "githubReadToken": read_token}, separators=(",", ":")).encode()
           stamp = str(int(time.time()))
           signature = hmac.new(secret.encode(), stamp.encode() + b"." + body, hashlib.sha256).hexdigest()
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, hdrs, newurl):
                   return None
           request = urllib.request.Request(destination, data=body, headers={
-              "Content-Type": "application/json", "x-sm-timestamp": stamp,
+              "Content-Type": "application/json", "User-Agent": "Sparkling-Mutuals-Notifications", "x-sm-timestamp": stamp,
               "x-sm-signature": "sha256=" + signature}, method="POST")
           try:
               with urllib.request.build_opener(NoRedirect()).open(request, timeout=45) as response:

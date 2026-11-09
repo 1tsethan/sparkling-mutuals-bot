@@ -51,3 +51,7 @@ Use no heartbeats, background polling or periodic alarms. Free Worker/DO quotas 
 ## Completion
 
 Completion means reviewed code, passing checks, the approved cloud migration performed, public notice/endpoint settings saved, real signed HTTPS requests working and a known notice deduplicated against the migrated ledger. Until then report the precise remaining step and leave the current host's recoverable data intact.
+
+## Live acceptance amendment: GitHub client compatibility
+
+Live checks found Cloudflare rejects Python-urllib's default client identity (403/1010) and the shared Cloudflare egress IP has exhausted GitHub's anonymous quota (403, zero remaining). Use an explicit honest `Sparkling-Mutuals-Notifications` User-Agent in the existing notification sender. Grant that workflow only contents:read/actions:read and include its automatically generated temporary `github.token` as `githubReadToken` in the HMAC-signed JSON. The Worker validates a temporary `ghs_` installation token after raw-body signature verification and passes it to the existing verifier's fixed official GitHub API requests. Never store, log, return or put that token in Worker secrets/receipt data. No new long-lived credential or mod runtime change is needed. Keep no-redirect behavior, existing eligibility and notice identity/digest, and replay a known sent run after both small changes merge. This is the builder's operational compatibility choice under the approved hosting request.
