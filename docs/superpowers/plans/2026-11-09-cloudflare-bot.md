@@ -67,3 +67,10 @@
 ## Completion boundary
 
 Local preparation ends with reviewed code, green tests and a deployable PR. Live completion requires verified Free account, secret/receipt transfer, matching receipt digest/count, old sender stopped, migration route disabled, stable endpoint configuration, Discord PING/help and duplicate replay. Never describe preparation as live migration.
+
+### Task 4: Live GitHub client compatibility
+
+- [x] Reproduce default Python User-Agent 403 versus explicit SM client 200 and shared remote GitHub quota 403/zero remaining.
+- [x] Pin failures in real Worker tests (required temporary token and outbound Authorization) and actual inline sender tests (signed token binding, User-Agent, read scopes and secret-safe failures).
+- [x] Forward only authenticated per-request Actions token to fixed GitHub verifier; set sender identity/read scopes; update privacy and synchronized template. Ten Worker tests and five sender tests green.
+- [ ] Fresh review the two small compatibility changes, merge and redeploy; replay known already-sent run from GitHub and require duplicate.
