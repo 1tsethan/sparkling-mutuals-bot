@@ -73,7 +73,7 @@ export class BotActor extends DurableObject<Env> {
           // This Actions installation token lives only for this request and is
           // sent only to the verifier's fixed official GitHub API origin.
           let input:any;try{input=JSON.parse(body.toString('utf8'));}catch{throw new BotError('invalid','Invalid notification.');}
-          if(typeof input?.githubReadToken!=='string'||!/^ghs_[A-Za-z0-9_]{20,250}$/.test(input.githubReadToken))
+          if(typeof input?.githubReadToken!=='string'||(!/^ghs_[A-Za-z0-9_.-]{20,4092}$/.test(input.githubReadToken)||input.githubReadToken.trim()!==input.githubReadToken))
             throw new BotError('invalid','A temporary GitHub Actions read token is required.');
           return new ReleaseNotifier({secret:config.notificationSecret,developmentBranch:config.developmentBranch,channels:config.channels,
             githubReadToken:input.githubReadToken,store:{claimInteraction:()=>false,...this.noticeStore()},discord}).notify(headers,body);

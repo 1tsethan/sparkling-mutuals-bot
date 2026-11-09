@@ -85,7 +85,7 @@ jobs:
               or not re.fullmatch(r"[a-f0-9]{64}", secret)):
               raise SystemExit("Configure the HTTPS notification endpoint and signing secret.")
           read_token = os.environ.get("SM_GITHUB_READ_TOKEN", "")
-          if not re.fullmatch(r"ghs_[A-Za-z0-9_]{20,250}", read_token):
+          if not re.fullmatch(r"ghs_[A-Za-z0-9_.-]{20,4092}", read_token):
               raise SystemExit("A temporary GitHub Actions read token is required.")
           body = json.dumps({"repository": repository, "kind": kind, "runId": str(run_id), "githubReadToken": read_token}, separators=(",", ":")).encode()
           stamp = str(int(time.time()))
