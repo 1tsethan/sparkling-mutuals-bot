@@ -1,5 +1,5 @@
 import { BotError } from './profile.ts';
-import { HttpError, readJson, retryAt } from './http.ts';
+import { HttpError, requestJson, retryAt } from './http.ts';
 import type { Message } from './commands.ts';
 type Options = { token: string; applicationId: string; guildId: string; allowedChannels: string[]; fetcher?: typeof fetch };
 export class DiscordClient {
@@ -13,11 +13,11 @@ export class DiscordClient {
   private async request(path: string, method: string, body?: any, authorization = true): Promise<any> {
     if (Date.now() < this.pausedUntil) throw new BotError('rate_limit', 'Discord is temporarily busy.');
     try {
-      const response = await this.fetcher('https://discord.com/api/v10' + path, {
+      const response = await requestJson('https://discord.com/api/v10' + path, this.fetcher, {
         method, headers: { 'Content-Type': 'application/json', ...(authorization ? { Authorization: 'Bot ' + this.token } : {}) },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(10000), redirect: 'error'
+        ...(body === undefined ? {} : { body: JSON.stringify(body) })
       });
-      return await readJson(response);
+      return response.data;
     } catch (error) {
       if (error instanceof HttpError && error.status === 429) this.pausedUntil = retryAt(error.headers, Date.now());
       if (error instanceof BotError) throw error;

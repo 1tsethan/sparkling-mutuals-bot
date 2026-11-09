@@ -30,12 +30,22 @@ export async function readJson(response: Response, maxBytes = 2 * 1024 * 1024): 
 }
 export async function getJson(url: string, fetcher: typeof fetch = fetch, headers: Record<string, string> = {}) {
   try {
-    const response = await fetcher(url, { headers, signal: AbortSignal.timeout(10000), redirect: 'error' });
-    return { data: await readJson(response), headers: response.headers };
+    return await requestJson(url, fetcher, { headers });
   } catch (error) {
     if (error instanceof BotError) throw error;
     throw new BotError('upstream', 'The lookup timed out or is temporarily unavailable.');
   }
+}
+// Clear the deadline after consuming the body, including all error paths. An
+// AbortSignal.timeout timer otherwise keeps an idle Durable Object active.
+export async function requestJson(url: string, fetcher: typeof fetch, init: RequestInit) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  timer.unref?.();
+  try {
+    const response = await fetcher(url, { ...init, signal: controller.signal, redirect: 'error' });
+    return { data: await readJson(response), headers: response.headers };
+  } finally { clearTimeout(timer); }
 }
 export function retryAt(headers: Headers, now: number): number {
   const retry = headers.get('retry-after');

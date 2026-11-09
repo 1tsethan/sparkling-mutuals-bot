@@ -3,12 +3,29 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.18.0" },
+  "engines": {
+    "node": ">=24.18.0"
+  },
   "scripts": {
     "test": "node --test test/*.test.ts",
     "check": "node tools/check.ts",
     "start": "node --env-file-if-exists=.env src/main.ts",
     "register": "node --env-file-if-exists=.env tools/register.ts",
-    "notify": "node tools/notify.ts"
+    "notify": "node tools/notify.ts",
+    "test:cloudflare": "vitest run",
+    "cloudflare:build": "wrangler deploy --dry-run",
+    "cloudflare:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.6.0",
+    "@cloudflare/workers-types": "5.20261109.1",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vitest": "4.1.12",
+    "wrangler": "4.158.0"
+  },
+  "allowScripts": {
+    "workerd": true,
+    "esbuild": true
   }
 }
