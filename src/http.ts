@@ -43,7 +43,9 @@ export async function requestJson(url: string, fetcher: typeof fetch, init: Requ
   const timer = setTimeout(() => controller.abort(), 10000);
   timer.unref?.();
   try {
-    const response = await fetcher(url, { ...init, signal: controller.signal, redirect: 'error' });
+    // Workers rejects redirect:error during Request construction. Manual mode
+    // is portable; readJson rejects every 3xx without following Location.
+    const response = await fetcher(url, { ...init, signal: controller.signal, redirect: 'manual' });
     return { data: await readJson(response), headers: response.headers };
   } finally { clearTimeout(timer); }
 }

@@ -25,7 +25,7 @@ test('transfer accepts only this Worker HTTPS origin and requires matching impor
   try {
     ledger.claim('known','1568145100683485184','a'.repeat(64),1000);ledger.sent('known','1568364377130795149');
     const snapshot=ledger.exportSnapshot();let calls=0;
-    const fake=async(url,init)=>{calls++;assert.equal(url,origin+'/migration/receipts');assert.equal(init.redirect,'error');assert.ok(init.headers['x-sm-migration-signature']);
+    const fake=async(url,init)=>{calls++;assert.equal(url,origin+'/migration/receipts');assert.equal(init.redirect,'manual');assert.ok(init.headers['x-sm-migration-signature']);
       return Response.json(init.method==='POST'?{count:1,digest:snapshotDigest(snapshot)}:snapshot);};
     assert.deepEqual(await transferReceipts(origin,snapshot,Buffer.alloc(32,9),fake as typeof fetch),{count:1,digest:snapshotDigest(snapshot)});assert.equal(calls,2);
     await assert.rejects(transferReceipts(origin,snapshot,Buffer.alloc(32,9),(async()=>Response.json({count:0,digest:'wrong'})) as typeof fetch),/confirmation/);
