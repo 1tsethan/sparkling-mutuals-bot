@@ -36,7 +36,15 @@ export class DiscordClient {
     return result.id;
   }
   async editResponse(token: string, message: Message): Promise<void> {
-    await this.request('/webhooks/' + this.applicationId + '/' + encodeURIComponent(token) + '/messages/@original',
-      'PATCH', { ...message, allowed_mentions: { parse: [] } }, false);
+    const path='/webhooks/' + this.applicationId + '/' + encodeURIComponent(token) + '/messages/@original';
+    for (let attempt=0;;attempt++) {
+      try { await this.request(path, 'PATCH', { ...message, allowed_mentions: { parse: [] } }, false); return; }
+      catch (error) {
+        // The deferred acknowledgement can still be in transit when a cached
+        // lookup completes. Retry only a definite 404, never an unknown send.
+        if (!(error instanceof HttpError) || error.status!==404 || attempt>=2) throw error;
+        await new Promise(resolve=>setTimeout(resolve,250));
+      }
+    }
   }
 }

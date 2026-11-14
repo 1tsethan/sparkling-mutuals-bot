@@ -10,6 +10,7 @@ type Options = {
   lookup: { lookup(name: string): Promise<LookupResult> };
   discord: { editResponse(token: string, message: Message): Promise<void>; sendMessage(channel: string, message: Message, nonce?: string): Promise<string> };
   claimInteraction: (id: string) => boolean;
+  claimCooldown?: (id: string) => boolean;
   notify: (headers: Record<string, string>, body: Buffer) => Promise<any>;
   now?: () => number; log?: (code: string) => void; statsEnabled?: boolean;
 };
@@ -56,9 +57,9 @@ export function createApp(options: Options) {
         (biome && (name !== 'sparkling' || biome.type !== 3 || !Object.hasOwn(ROSTER, biome.value))))
       return privateReply('Enter a valid Minecraft username and command options.');
     if (!options.claimInteraction(interaction.id)) return privateReply('This command was already received.');
-    if (cooldowns.has(user)) return privateReply('Please wait a few seconds before another lookup.');
+    if (options.claimCooldown ? !options.claimCooldown(user) : cooldowns.has(user)) return privateReply('Please wait a few seconds before another lookup.');
     if (cooldowns.size >= 1000) return privateReply('The bot is busy. Please try again shortly.');
-    cooldowns.set(user, now());
+    if (!options.claimCooldown) cooldowns.set(user, now());
     let started = false;
     return { status: 200, body: { type: 5, data: { flags: 64 } }, after: async () => {
       if (started) return;
