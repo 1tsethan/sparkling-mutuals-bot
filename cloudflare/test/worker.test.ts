@@ -33,12 +33,13 @@ it('validates exact routes, methods, body limits and signatures before allocatin
   expect(await listDurableObjectIds(e.BOT)).toHaveLength(0);
   const ping=await SELF.fetch(interaction({type:1}));expect(await ping.json()).toEqual({type:1});
 });
-it('help, disabled stats and foreign-guild responses stay private with no external calls',async()=>{
+it('help and disabled stats are public in SM; foreign-guild responses stay private',async()=>{
   for(const name of ['help','tickets','sparkling','safari']) {
     const r=await SELF.fetch(interaction({type:2,application_id:e.SM_APPLICATION_ID,guild_id:e.SM_GUILD_ID,channel_id:e.SM_COMMAND_CHANNEL_ID,data:{name}}));
     const result=await r.json() as any;
-    expect(result.type).toBe(4);expect(result.data.flags).toBe(64);
+    expect(result.type).toBe(4);expect(result.data.flags).toBeUndefined();
     if(name!=='help')expect(result.data.content).toMatch(/disabled/);
+    else expect(result.data.content).toContain('visible in this channel');
   }
   const r=await SELF.fetch(interaction({type:2,application_id:e.SM_APPLICATION_ID,guild_id:'123456789012345678',channel_id:e.SM_COMMAND_CHANNEL_ID,data:{name:'help'}}));
   expect((await r.json() as any).data.content).toMatch(/SM bot-commands/);

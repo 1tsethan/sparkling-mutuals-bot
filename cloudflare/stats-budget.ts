@@ -24,11 +24,11 @@ export class StatsBudget {
   }
   async fetch(url:string,init?:RequestInit):Promise<Response> {
     const host=new URL(url).hostname;
-    const provider=host==='api.mojang.com'?'mojang':host==='api.hypixel.net'?'hypixel':'';
+    const provider=host==='api.mojang.com'?'mojang':host==='playerdb.co'?'playerdb':host==='api.hypixel.net'?'hypixel':'';
     if(!provider)throw new BotError('upstream','Unexpected API destination.');
     const now=Date.now();
     this.storage.transactionSync(()=>{
-      this.storage.sql.exec('DELETE FROM stats_requests WHERE (provider=? AND at<=?) OR (provider=? AND at<=?)','mojang',now-60000,'hypixel',now-300000);
+      this.storage.sql.exec('DELETE FROM stats_requests WHERE (provider IN (?,?) AND at<=?) OR (provider=? AND at<=?)','mojang','playerdb',now-60000,'hypixel',now-300000);
       const paused=this.storage.sql.exec<{until:number}>('SELECT until FROM stats_pauses WHERE provider=?',provider).toArray()[0];
       const count=this.storage.sql.exec<{count:number}>('SELECT COUNT(*) AS count FROM stats_requests WHERE provider=?',provider).one().count;
       if((paused?.until??0)>now||count>=20)throw new BotError('rate_limit','The API is busy. Please try again shortly.');

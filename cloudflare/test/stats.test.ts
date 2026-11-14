@@ -17,7 +17,10 @@ beforeEach(()=>{
   edits=[];posts=[];names=0;profiles=0;
   vi.spyOn(globalThis,'fetch').mockImplementation(async(url,init)=>{
     const request=new Request(String(url),init),path=new URL(request.url);
-    if(path.hostname==='api.mojang.com'){names++;return Response.json({id:uuid,name:'Example'});}
+    if(path.hostname==='playerdb.co'){
+      names++;expect(request.headers.has('API-Key')).toBe(false);expect(request.headers.get('user-agent')).toContain('Sparkling-Mutuals-Discord');
+      return Response.json({success:true,data:{player:{raw_id:uuid,username:'Example'}}});
+    }
     if(path.hostname==='api.hypixel.net'){
       profiles++;expect(request.headers.get('API-Key')).toBe('fictional-hypixel-key');
       return Response.json({success:true,profiles:[{profile_id:'profile',selected:true,members:{[uuid]:{safari:{tickets:{basic:2}}}}}]});
@@ -29,8 +32,8 @@ beforeEach(()=>{
   });
 });
 afterEach(async()=>{vi.restoreAllMocks();await reset();});
-it('returns an immediate private deferral and completes a private live lookup',async()=>{
-  const r=await SELF.fetch(signed());expect(await r.json()).toMatchObject({type:5,data:{flags:64}});
+it('returns a public deferral and completes a public live lookup',async()=>{
+  const r=await SELF.fetch(signed());expect(await r.json()).toEqual({type:5,data:{}});
   for(let i=0;i<30&&!edits.length;i++)await new Promise(resolve=>setTimeout(resolve,10));
   expect(edits).toHaveLength(1);expect(JSON.stringify(edits[0])).toContain('Safari tickets');
   expect(names).toBe(1);expect(profiles).toBe(1);expect(posts).toHaveLength(0);
@@ -57,12 +60,12 @@ it('provider request budgets and pauses survive a cold actor restart',async()=>{
   const stub=e.BOT.get(e.BOT.idFromName('sparkling-mutuals'));
   await runInDurableObject(stub,async(_actor,state)=>{
     const budget=new StatsBudget(state.storage,'fixture-secret');
-    for(let i=0;i<20;i++)await budget.fetch('https://api.mojang.com/users/profiles/minecraft/Example');
+    for(let i=0;i<20;i++)await budget.fetch('https://playerdb.co/api/player/minecraft/Example',{headers:{'User-Agent':'Sparkling-Mutuals-Discord/1.0'}});
   });
   await evictDurableObject(stub);
   await runInDurableObject(stub,async(_actor,state)=>{
     const budget=new StatsBudget(state.storage,'fixture-secret');
-    await expect(budget.fetch('https://api.mojang.com/users/profiles/minecraft/Example')).rejects.toMatchObject({code:'rate_limit'});
+    await expect(budget.fetch('https://playerdb.co/api/player/minecraft/Example')).rejects.toMatchObject({code:'rate_limit'});
   });
   expect(names).toBe(20);
 });
@@ -90,11 +93,10 @@ it('never looks up a request from a different server or an invalid signature',as
   const bad=await SELF.fetch('https://bot.test/interactions',{method:'POST',body:'{}'});expect(bad.status).toBe(401);
   expect(names).toBe(0);expect(profiles).toBe(0);
 });
-it('shares only when requested and only in the SM command channel',async()=>{
+it('legacy share option does not duplicate a public result',async()=>{
   const response=await SELF.fetch(signed('123456789012345670',true));expect((await response.json() as any).type).toBe(5);
   for(let i=0;i<30&&!edits.length;i++)await new Promise(resolve=>setTimeout(resolve,10));
-  expect(posts).toHaveLength(1);expect(posts[0].allowed_mentions).toEqual({parse:[]});
-  expect(edits[0].content).toMatch(/Shared/);
+  expect(posts).toHaveLength(0);expect(JSON.stringify(edits[0])).toContain('Safari tickets');
 });
 it('persists provider 429 backoff through eviction',async()=>{
   const stub=e.BOT.get(e.BOT.idFromName('sparkling-mutuals'));

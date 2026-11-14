@@ -12,7 +12,7 @@ type Options = {
   claimInteraction: (id: string) => boolean;
   claimCooldown?: (id: string) => boolean;
   notify: (headers: Record<string, string>, body: Buffer) => Promise<any>;
-  now?: () => number; log?: (code: string) => void; statsEnabled?: boolean;
+  now?: () => number; log?: (code: string) => void; statsEnabled?: boolean; publicResponses?: boolean;
 };
 const privateReply = (content: string): Reply => ({ status: 200, body: { type: 4, data: { content, flags: 64, allowed_mentions: { parse: [] } } } });
 export function createApp(options: Options) {
@@ -37,37 +37,41 @@ export function createApp(options: Options) {
       return privateReply('This interaction is not supported.');
     if (interaction.guild_id !== options.guildId || interaction.channel_id !== options.commandChannelId)
       return privateReply('Use this command in the SM bot-commands channel.');
+    const channelReply = (content:string):Reply => options.publicResponses
+      ? {status:200,body:{type:4,data:{content,allowed_mentions:{parse:[]}}}} : privateReply(content);
     const name = interaction.data?.name;
-    if (name === 'help') return { status: 200, body: { type: 4, data: { ...helpMessage, flags: 64 } } };
-    if (!['tickets', 'sparkling', 'safari'].includes(name)) return privateReply('Unknown SM command.');
-    if (options.statsEnabled === false) return privateReply('Safari stats are currently disabled while API access is being prepared.');
+    if (name === 'help') return { status: 200, body: { type: 4, data: options.publicResponses
+      ? {...helpMessage,content:helpMessage.content?.replace('Results are private unless you choose share.','Results are visible in this channel.')}
+      : {...helpMessage,flags:64} } };
+    if (!['tickets', 'sparkling', 'safari'].includes(name)) return channelReply('Unknown SM command.');
+    if (options.statsEnabled === false) return channelReply('Safari stats are currently disabled while API access is being prepared.');
     const user = interaction.member?.user?.id;
     if (!/^\d{17,22}$/.test(user ?? '') || !/^\d{17,22}$/.test(interaction.id ?? '') ||
         typeof interaction.token !== 'string' || interaction.token.length > 300)
-      return privateReply('Invalid command request.');
+      return channelReply('Invalid command request.');
     const values = interaction.data?.options;
     if (!Array.isArray(values) || values.some((v: any) => !v || !['player', 'share', 'biome'].includes(v.name)) ||
         new Set(values.map((v: any) => v.name)).size !== values.length)
-      return privateReply('Invalid command options.');
+      return channelReply('Invalid command options.');
     const player = values.find((v: any) => v.name === 'player');
     const share = values.find((v: any) => v.name === 'share');
     const biome = values.find((v: any) => v.name === 'biome');
     if (player?.type !== 3 || typeof player.value !== 'string' || !/^[A-Za-z0-9_]{1,16}$/.test(player.value) ||
         (share && (share.type !== 5 || typeof share.value !== 'boolean')) ||
         (biome && (name !== 'sparkling' || biome.type !== 3 || !Object.hasOwn(ROSTER, biome.value))))
-      return privateReply('Enter a valid Minecraft username and command options.');
-    if (!options.claimInteraction(interaction.id)) return privateReply('This command was already received.');
-    if (options.claimCooldown ? !options.claimCooldown(user) : cooldowns.has(user)) return privateReply('Please wait a few seconds before another lookup.');
-    if (cooldowns.size >= 1000) return privateReply('The bot is busy. Please try again shortly.');
+      return channelReply('Enter a valid Minecraft username and command options.');
+    if (!options.claimInteraction(interaction.id)) return channelReply('This command was already received.');
+    if (options.claimCooldown ? !options.claimCooldown(user) : cooldowns.has(user)) return channelReply('Please wait a few seconds before another lookup.');
+    if (cooldowns.size >= 1000) return channelReply('The bot is busy. Please try again shortly.');
     if (!options.claimCooldown) cooldowns.set(user, now());
     let started = false;
-    return { status: 200, body: { type: 5, data: { flags: 64 } }, after: async () => {
+    return { status: 200, body: { type: 5, data: options.publicResponses?{}:{ flags: 64 } }, after: async () => {
       if (started) return;
       started = true;
       try {
         const result = await options.lookup.lookup(player.value);
         const message = renderCard(name, result, biome?.value);
-        if (share?.value === true) {
+        if (share?.value === true && !options.publicResponses) {
           await options.discord.sendMessage(options.commandChannelId, message, interaction.id);
           await options.discord.editResponse(interaction.token, { content: 'Shared your Safari result in this channel.' });
         } else await options.discord.editResponse(interaction.token, message);

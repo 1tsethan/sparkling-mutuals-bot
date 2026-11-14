@@ -2,7 +2,7 @@
 
 The owner selected the existing account and confirmed **Workers Free** on 9 November 2026. This bot uses a separate `sparkling-mutuals-discord` Worker and SQLite Durable Object namespace. Never edit, delete, deploy over or attach the existing `sm-safari-sync-backup` service. No paid upgrade or domain purchase is needed. Account free quotas are shared with that service; exhaustion can interrupt delivery.
 
-The checked-in configuration defaults notifications, statistics and migration to disabled. An active deployment must explicitly preserve its intended flags. The approved Personal Hypixel application key is a Worker secret named `SM_HYPIXEL_API_KEY`; use `Configure-Hypixel-Key.cmd` for hidden entry. The stats coordinator uses bounded caches, a conservative shared provider budget, durable backoff and private deferred replies. No Gateway connection, scheduled polling or keep-alive is needed.
+The checked-in configuration defaults notifications, statistics and migration to disabled. An active deployment must explicitly preserve its intended flags. The approved Personal Hypixel application key is a Worker secret named `SM_HYPIXEL_API_KEY`; use `Configure-Hypixel-Key.cmd` for hidden entry. The stats coordinator uses bounded caches, a conservative shared provider budget, durable backoff and public deferred replies in the SM bot-commands channel. No Gateway connection, scheduled polling or keep-alive is needed.
 
 ## Prepare
 
@@ -40,7 +40,7 @@ Before any deployment, verify `wrangler whoami` identifies the intended existing
 9. Replay a known already-sent official master run via the existing GitHub notification workflow. The result must be `duplicate`, retaining the same Discord message ID; do not create a synthetic release/tag. Verify `/migration/receipts` is 404 and an unsigned notification is 401. Recheck the independent WebSocket service still has the same deployment.
 10. Keep the local sender stopped. Stop only the obsolete bot-specific temporary tunnel after the stable endpoint is verified. Record the Worker deployment and evidence. Do not run the local feed launcher as a second sender.
 
-The worker returns private immediate explanations for stats commands. Its presence badge can show offline because this is an HTTP application.
+The worker returns command responses visibly in the SM bot-commands channel. Its presence badge can show offline because this is an HTTP application.
 
 ## Rollback and ambiguous outcomes
 

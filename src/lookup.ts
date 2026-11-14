@@ -3,7 +3,7 @@ import type { SafariCard } from './profile.ts';
 import { getJson, HttpError, retryAt } from './http.ts';
 import { ExpiringMap } from './expiry.ts';
 export type LookupResult = { uuid: string; name: string; fetchedAt: number; card: SafariCard };
-type Options = { apiKey: string; fetcher?: typeof fetch; now?: () => number; perMinute?: number; passiveCache?: boolean };
+type Options = { apiKey: string; fetcher?: typeof fetch; now?: () => number; perMinute?: number; passiveCache?: boolean; identityProvider?: 'mojang'|'playerdb' };
 export class LookupService {
   private apiKey: string; private fetcher: typeof fetch; private now: () => number; private perMinute: number;
   private names: ExpiringMap<{ uuid: string; name: string }>;
@@ -13,9 +13,11 @@ export class LookupService {
   private requests: number[] = []; private nameRequests: number[] = [];
   private active = 0; private pausedUntil = 0; private namePausedUntil = 0;
   private remaining = Infinity; private resetsAt = 0;
+  private identityProvider:'mojang'|'playerdb';
   constructor(options: Options) {
     this.apiKey = options.apiKey; this.fetcher = options.fetcher ?? fetch;
     this.now = options.now ?? Date.now; this.perMinute = options.perMinute ?? 20;
+    this.identityProvider = options.identityProvider ?? 'mojang';
     this.names = new ExpiringMap(3600000, 1000, this.now, options.passiveCache);
     this.cards = new ExpiringMap(60000, 1000, this.now, options.passiveCache);
     if (!Number.isInteger(this.perMinute) || this.perMinute < 1 || this.perMinute > 20)
@@ -35,10 +37,16 @@ export class LookupService {
         throw new BotError('rate_limit', 'Player lookups are busy. Please try again shortly.');
       this.nameRequests.push(now);
       try {
-        const { data } = await getJson('https://api.mojang.com/users/profiles/minecraft/' + encodeURIComponent(name), this.fetcher);
-        if (!/^[0-9a-f]{32}$/i.test(data?.id ?? '') || !/^[A-Za-z0-9_]{1,16}$/.test(data?.name ?? ''))
+        const playerdb=this.identityProvider==='playerdb';
+        const url=playerdb?'https://playerdb.co/api/player/minecraft/':'https://api.mojang.com/users/profiles/minecraft/';
+        const { data } = await getJson(url + encodeURIComponent(name), this.fetcher,
+          playerdb?{'User-Agent':'Sparkling-Mutuals-Discord/1.0','Accept':'application/json'}:{});
+        if(playerdb&&data?.success===false)throw new BotError('player','Minecraft player not found. Check the spelling.');
+        const id=playerdb?data?.data?.player?.raw_id:data?.id;
+        const username=playerdb?data?.data?.player?.username:data?.name;
+        if ((playerdb&&data?.success!==true)||!/^[0-9a-f]{32}$/i.test(id ?? '') || !/^[A-Za-z0-9_]{1,16}$/.test(username ?? '') || (playerdb&&username.toLowerCase()!==key))
           throw new BotError('malformed', 'Malformed player identity.');
-        const result = { uuid: data.id.toLowerCase(), name: data.name };
+        const result = { uuid: id.toLowerCase(), name: username };
         this.names.set(key, result);
         return result;
       } catch (error) {
