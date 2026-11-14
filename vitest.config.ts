@@ -11,5 +11,6 @@ const testProject=(name:string,include:string,bindings:Record<string,string>)=>(
 });
 export default defineConfig({test:{projects:[
   testProject('notices','cloudflare/test/worker.test.ts',{SM_NOTIFICATIONS_ENABLED:'true'}),
+  testProject('stats','cloudflare/test/stats.test.ts',{SM_NOTIFICATIONS_ENABLED:'true',SM_STATS_ENABLED:'true',SM_HYPIXEL_API_KEY:'fictional-hypixel-key'}),
   testProject('migration','cloudflare/test/migration.test.ts',{SM_NOTIFICATIONS_ENABLED:'false',SM_MIGRATION_ENABLED:'true'})
 ]}});

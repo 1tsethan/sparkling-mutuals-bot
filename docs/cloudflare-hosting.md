@@ -2,7 +2,7 @@
 
 The owner selected the existing account and confirmed **Workers Free** on 9 November 2026. This bot uses a separate `sparkling-mutuals-discord` Worker and SQLite Durable Object namespace. Never edit, delete, deploy over or attach the existing `sm-safari-sync-backup` service. No paid upgrade or domain purchase is needed. Account free quotas are shared with that service; exhaustion can interrupt delivery.
 
-The checked-in configuration is deliberately disabled for notifications and migration. `/help` and disabled-stat explanations need only the public Discord settings. Statistics cannot be enabled in this Worker; no Hypixel key belongs here. No Gateway connection, scheduled polling or keep-alive is needed.
+The checked-in configuration defaults notifications, statistics and migration to disabled. An active deployment must explicitly preserve its intended flags. The approved Personal Hypixel application key is a Worker secret named `SM_HYPIXEL_API_KEY`; use `Configure-Hypixel-Key.cmd` for hidden entry. The stats coordinator uses bounded caches, a conservative shared provider budget, durable backoff and private deferred replies. No Gateway connection, scheduled polling or keep-alive is needed.
 
 ## Prepare
 

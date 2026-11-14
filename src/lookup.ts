@@ -3,7 +3,7 @@ import type { SafariCard } from './profile.ts';
 import { getJson, HttpError, retryAt } from './http.ts';
 import { ExpiringMap } from './expiry.ts';
 export type LookupResult = { uuid: string; name: string; fetchedAt: number; card: SafariCard };
-type Options = { apiKey: string; fetcher?: typeof fetch; now?: () => number; perMinute?: number };
+type Options = { apiKey: string; fetcher?: typeof fetch; now?: () => number; perMinute?: number; passiveCache?: boolean };
 export class LookupService {
   private apiKey: string; private fetcher: typeof fetch; private now: () => number; private perMinute: number;
   private names: ExpiringMap<{ uuid: string; name: string }>;
@@ -16,8 +16,8 @@ export class LookupService {
   constructor(options: Options) {
     this.apiKey = options.apiKey; this.fetcher = options.fetcher ?? fetch;
     this.now = options.now ?? Date.now; this.perMinute = options.perMinute ?? 20;
-    this.names = new ExpiringMap(3600000, 1000, this.now);
-    this.cards = new ExpiringMap(60000, 1000, this.now);
+    this.names = new ExpiringMap(3600000, 1000, this.now, options.passiveCache);
+    this.cards = new ExpiringMap(60000, 1000, this.now, options.passiveCache);
     if (!Number.isInteger(this.perMinute) || this.perMinute < 1 || this.perMinute > 20)
       throw new Error('Profile budget must be between 1 and 20 per minute.');
   }

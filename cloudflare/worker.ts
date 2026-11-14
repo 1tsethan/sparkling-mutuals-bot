@@ -9,6 +9,8 @@ import { DiscordClient } from '../src/discord.ts';
 import { ReleaseNotifier } from '../src/releases.ts';
 import { verifyMigration } from '../src/receipt-migration.ts';
 import { BotError } from '../src/profile.ts';
+import { LookupService } from '../src/lookup.ts';
+import { StatsBudget } from './stats-budget.ts';
 
 export function json(body:unknown,status=200) {
   return new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
@@ -52,6 +54,8 @@ export default {
 };
 export class BotActor extends DurableObject<Env> {
   private ledger?:EncryptedReceiptLedger;
+  private budget?:StatsBudget;
+  private lookup?:LookupService;
   private receipts() {
     if(!this.ledger)this.ledger=new EncryptedReceiptLedger(cloudflareReceiptSql(this.ctx.storage),Buffer.from(this.env.SM_RECEIPT_KEY??'','hex'));
     return this.ledger;
@@ -65,10 +69,14 @@ export class BotActor extends DurableObject<Env> {
         let snapshot:unknown;try{snapshot=JSON.parse(authorized.raw.toString('utf8'));}catch{return json({error:'Invalid JSON'},400);}
         return json(this.receipts().importSnapshot(snapshot));
       }
-      const discord=new DiscordClient({token:config.botToken,applicationId:config.applicationId,guildId:config.guildId,allowedChannels:Object.values(config.channels)});
-      const app=createApp({...config,statsEnabled:false,discord,
+      if(config.statsEnabled&&!this.budget)this.budget=new StatsBudget(this.ctx.storage,config.receiptKey);
+      if(config.statsEnabled&&!this.lookup)this.lookup=new LookupService({apiKey:config.apiKey,passiveCache:true,fetcher:(url,init)=>this.budget!.fetch(String(url),init)});
+      const discord=new DiscordClient({token:config.botToken,applicationId:config.applicationId,guildId:config.guildId,allowedChannels:[config.commandChannelId,...Object.values(config.channels)]});
+      const app=createApp({...config,discord,
         log:code=>console.log(JSON.stringify({event:'request_error',code})),
-        claimInteraction:()=>false,lookup:{lookup:async()=>{throw new Error('Stats disabled');}},
+        claimInteraction:id=>this.budget?.claim('interaction',id)??false,
+        claimCooldown:id=>this.budget?.claim('cooldown',id)??false,
+        lookup:{lookup:async(name)=>{if(!this.lookup)throw new BotError('disabled','Stats are disabled.');return this.lookup.lookup(name);}},
         notify:async(headers,body)=>{
           // Both front door and actor have authenticated the exact raw body.
           // This Actions installation token lives only for this request and is
@@ -91,8 +99,10 @@ export class BotActor extends DurableObject<Env> {
       });
       try {
         const reply=await app(authorized.path,authorized.headers,authorized.raw);
+        if(reply.after) this.ctx.waitUntil(reply.after().catch(()=>console.log(JSON.stringify({event:'interaction_job_failed'}))).finally(()=>app.close()));
+        else app.close();
         return json(reply.body,reply.status);
-      } finally {app.close();}
+      } catch(error) {app.close();throw error;}
     } catch {return json({error:'unavailable'},503);}
   }
   private noticeStore() {
