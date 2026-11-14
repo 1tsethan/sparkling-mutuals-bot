@@ -47,7 +47,6 @@ export const commandDefinitions = [
     name, description: name === 'tickets' ? 'Show a player’s Safari tickets' : name === 'sparkling' ? 'Show Sparkling discoveries and catches' : 'Show a player’s Safari statistics',
     type: 1, options: [
       { name: 'player', description: 'Minecraft username', type: 3, required: true, min_length: 1, max_length: 16 },
-      { name: 'share', description: 'Share the successful result in this command channel', type: 5, required: false },
       ...(name === 'sparkling' ? [{ name: 'biome', description: 'Filter the species list', type: 3, required: false,
         choices: Object.keys(ROSTER).map(value => ({ name: value, value })) }] : [])
     ]

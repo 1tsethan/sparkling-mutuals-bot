@@ -6,16 +6,16 @@ This notice covers the Sparkling Mutuals Discord bot (application ID 15682039729
 
 ## Current service
 
-The bot provides private HTTP command responses and verified software release/build announcements. Safari statistics are being activated for the approved Personal API application. A dedicated Cloudflare Worker handles HTTPS requests and a SQLite Durable Object stores the encrypted announcement receipts described below. The existing SM WebSocket service is separate.
+The bot provides public command responses in the SM bot-commands channel and verified software release/build announcements. Safari statistics use the approved Personal API application. A dedicated Cloudflare Worker handles HTTPS requests and a SQLite Durable Object stores the encrypted announcement receipts described below. The existing SM WebSocket service is separate.
 
 
 ## Information processed and why
 
 Discord sends the bot the slash-command interaction, including command arguments, interaction ID, server/channel identifiers and requester information. The bot checks the server and channel, verifies Discord's signature and sends a response. It uses Discord user IDs for short command cooldowns and interaction IDs to prevent duplicate work. It does not request ordinary channel message history or link Discord accounts to Minecraft accounts.
 
-When statistics are enabled, the Minecraft username supplied in /tickets, /sparkling or /safari is sent to Mojang to resolve the public player identity. The player's UUID is then sent to Hypixel to request SkyBlock profiles. The bot extracts the requested member's Safari data from the selected profile, including ticket balances, discoveries, catches and available Hunting/Safari fields. Other members' profile data is not retained as a lookup result. Statistics are fetched only in response to a command; the bot does not continuously poll players or keep a statistics history.
+When statistics are enabled, the Minecraft username supplied in /tickets, /sparkling or /safari is sent to PlayerDB to resolve the public player identity. PlayerDB is an independent service that may process the username and network metadata under its own policies. The player's UUID is then sent to Hypixel to request SkyBlock profiles. The bot extracts the requested member's Safari data from the selected profile, including ticket balances, discoveries, catches and available Hunting/Safari fields. Other members' profile data is not retained as a lookup result. Statistics are fetched only in response to a command; the bot does not continuously poll players or keep a statistics history.
 
-Replies are private to the requester by default. Selecting share publishes a successful result in bot-commands. Do not share a result you do not want other server members to see. Errors stay private.
+Command replies in the SM bot-commands channel are visible to members who can see that channel, including errors and requested player statistics. Only request information you are comfortable displaying there. Unsupported requests outside the approved channel receive private guidance.
 
 ## Retention and storage
 
@@ -37,11 +37,11 @@ Public replies and support messages remain on Discord under Discord's retention 
 
 ## Service providers and disclosure
 
-Discord delivers commands and responses; Cloudflare hosts the bot runtime, Worker secrets and encrypted Durable Object receipt storage. Cloudflare may retain platform recovery copies and operational metadata under its policies; the operator has not configured an additional cloud application-data backup service. Mojang and Hypixel receive the lookup identifiers described above when statistics are enabled. GitHub hosts this notice and public software information. GitHub Actions sends signed software workflow identifiers to request announcements; the bot reads the official public run/release/artifact metadata before posting. GitHub stores only the dedicated notification signing secret, not the Discord bot token, Hypixel key or receipt-encryption key. During an announcement request, GitHub Actions also supplies its temporary workflow token with read access to repository contents and Actions metadata. Cloudflare uses that token only to verify the fixed official repository through GitHub, without storing it in secrets, receipts or application logs. These services may process network metadata and maintain their own logs under their policies:
+Discord delivers commands and responses; Cloudflare hosts the bot runtime, Worker secrets and encrypted Durable Object receipt storage. Cloudflare may retain platform recovery copies and operational metadata under its policies; the operator has not configured an additional cloud application-data backup service. PlayerDB and Hypixel receive the lookup identifiers described above when statistics are enabled. GitHub hosts this notice and public software information. GitHub Actions sends signed software workflow identifiers to request announcements; the bot reads the official public run/release/artifact metadata before posting. GitHub stores only the dedicated notification signing secret, not the Discord bot token, Hypixel key or receipt-encryption key. During an announcement request, GitHub Actions also supplies its temporary workflow token with read access to repository contents and Actions metadata. Cloudflare uses that token only to verify the fixed official repository through GitHub, without storing it in secrets, receipts or application logs. These services may process network metadata and maintain their own logs under their policies:
 
 - [Discord privacy policy](https://discord.com/privacy)
 - [Cloudflare privacy policy](https://www.cloudflare.com/privacypolicy/)
-- [Microsoft privacy statement, including Mojang services](https://www.microsoft.com/privacy/privacystatement)
+- [PlayerDB](https://playerdb.co/)
 - [Hypixel privacy policy](https://hypixel.net/privacy)
 - [GitHub privacy statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement)
 

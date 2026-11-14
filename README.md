@@ -4,7 +4,7 @@ Implementation of the approved SM bot design, with Windows and Cloudflare hostin
 
 The Discord application has been created under ethxn15 and its bot installed in Sparkling Mutuals, with the existing blue sparkle SM logo as its avatar. It is private, supports guild installation only, and was authorized for View Channels, Send Messages and Embed Links. Its public application ID, verification key and actual bot-commands channel ID are recorded in .env.example. No bot token was displayed or reset.
 
-Private /help responses and automatic verified master-build announcements have been tested live. Statistics remain disabled pending Hypixel approval. Cloudflare hosting is prepared in a separate Worker with encrypted SQLite Durable Object receipts; deployment and cutover are tracked separately from code readiness. See [Cloudflare hosting](docs/cloudflare-hosting.md) for Free-plan setup, ciphertext transfer and rollback. The existing WebSocket service is unchanged.
+The Cloudflare Worker provides public command responses in the SM bot-commands channel and automatic verified master-build announcements. The approved Hypixel Personal application supplies Safari statistics; PlayerDB resolves Minecraft usernames. See [Cloudflare hosting](docs/cloudflare-hosting.md) for setup and recovery. The existing WebSocket service is separate.
 
 
 ## Local checks
@@ -23,7 +23,7 @@ The last three commands print fictional responses, a command registration previe
 
 Local verification on 7 November 2026: all 49 native tests passed on Windows with Node 24.18.0, including real DPAPI round trips, encrypted SQLite restart/concurrency/tamper cases and launcher boundaries. All 35 TypeScript files passed syntax checks. The GitHub workflow template passes actionlint, and its actual inline sender passes four controlled Python tests in the companion mod repository.
 
-The original local host and temporary tunnel handled a verified official master build and duplicate replay successfully. That host remains authoritative until the Cloudflare migration checklist is completed. Statistics are disabled on both hosting configurations. The Cloudflare Worker has no Gateway connection and needs no idle keep-alive.
+The Cloudflare Worker is the active host. The old local receipt database is retained for recovery but must be reconciled before running any local sender. The Worker has no Gateway connection and needs no idle keep-alive.
 
 
 The separate public repository is https://github.com/1tsethan/sparkling-mutuals-bot. The [privacy notice](https://github.com/1tsethan/sparkling-mutuals-bot/blob/main/PRIVACY.md) is linked from the Discord Developer Portal, bot profile and command-channel topic. Contact Discord user ethxn15, or request a private conversation through SM support, for privacy/deletion questions. See [FEED-SETUP.md](FEED-SETUP.md) for the protected Windows configuration and GitHub announcement connection.
@@ -62,7 +62,7 @@ Review the preview first. When the owner has chosen the application and installe
 
 This replaces this application's SM guild command list with the four commands in src/commands.ts. It does not register global commands. It should be reviewed before use with any pre-existing application that already has other commands.
 
-Slash commands require a Minecraft player argument. Responses start private. Choosing share sends a successful result to the configured command channel while leaving errors private. /sparkling has a biome choice for filtering its species list.
+Slash commands require a Minecraft player argument. Cloudflare command responses are visible in the configured bot-commands channel. /sparkling has a biome choice for filtering its species list.
 
 ## Release integration
 

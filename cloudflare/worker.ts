@@ -70,9 +70,9 @@ export class BotActor extends DurableObject<Env> {
         return json(this.receipts().importSnapshot(snapshot));
       }
       if(config.statsEnabled&&!this.budget)this.budget=new StatsBudget(this.ctx.storage,config.receiptKey);
-      if(config.statsEnabled&&!this.lookup)this.lookup=new LookupService({apiKey:config.apiKey,passiveCache:true,fetcher:(url,init)=>this.budget!.fetch(String(url),init)});
+      if(config.statsEnabled&&!this.lookup)this.lookup=new LookupService({apiKey:config.apiKey,passiveCache:true,identityProvider:'playerdb',fetcher:(url,init)=>this.budget!.fetch(String(url),init)});
       const discord=new DiscordClient({token:config.botToken,applicationId:config.applicationId,guildId:config.guildId,allowedChannels:[config.commandChannelId,...Object.values(config.channels)]});
-      const app=createApp({...config,discord,
+      const app=createApp({...config,discord,publicResponses:true,
         log:code=>console.log(JSON.stringify({event:'request_error',code})),
         claimInteraction:id=>this.budget?.claim('interaction',id)??false,
         claimCooldown:id=>this.budget?.claim('cooldown',id)??false,
