@@ -35,6 +35,17 @@ it('returns an immediate private deferral and completes a private live lookup',a
   expect(edits).toHaveLength(1);expect(JSON.stringify(edits[0])).toContain('Safari tickets');
   expect(names).toBe(1);expect(profiles).toBe(1);expect(posts).toHaveLength(0);
 });
+it('retries a transient early Discord 404 without repeating the lookup',async()=>{
+  let attempts=0;
+  const original=vi.mocked(globalThis.fetch).getMockImplementation()!;
+  vi.mocked(globalThis.fetch).mockImplementation(async(url,init)=>{
+    if(String(url).includes('/messages/@original')&&attempts++===0)return Response.json({},{status:404});
+    return original(url,init);
+  });
+  const r=await SELF.fetch(signed());expect((await r.json() as any).type).toBe(5);
+  for(let i=0;i<100&&!edits.length;i++)await new Promise(resolve=>setTimeout(resolve,10));
+  expect(attempts).toBe(2);expect(edits).toHaveLength(1);expect(JSON.stringify(edits[0])).toContain('Safari tickets');expect(profiles).toBe(1);
+});
 it('duplicate delivery remains rejected after actor recreation',async()=>{
   const r=await SELF.fetch(signed());expect((await r.json() as any).type).toBe(5);
   for(let i=0;i<30&&!edits.length;i++)await new Promise(resolve=>setTimeout(resolve,10));
